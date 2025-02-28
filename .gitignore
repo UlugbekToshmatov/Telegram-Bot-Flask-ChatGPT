@@ -2,3 +2,5 @@
 .env
 error logs.txt
 my_base.db
+.idea
+__pycache__

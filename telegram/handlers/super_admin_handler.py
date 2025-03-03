@@ -72,16 +72,13 @@ async def super_admin_view_admins_handler(message: Message, session: AsyncSessio
 # for testing exception error message
 @super_admin_router.message(F.text == 'Savol-javoblarni ko\'rish')
 async def super_admin_view_questions_handler(message: Message, session: AsyncSession) -> None:
-    user = await get_user_by_tg_id(session=session, tg_id=message.from_user.id)
-    await message.answer(text=f'Sizning ma\'lumotlaringgiz:\n'
-                              f'User telegram id: {user.tg_id},\n'
-                              f'User name: {user.name},\n'
-                              f'User role id: {user.role_id}')
-    try:
-        raise Exception('Javob chiqdi')
-    except Exception as e:
-        print(e)
-        await message.answer(text=e.args[0])
+    # user = await get_user_by_tg_id(session=session, tg_id=message.from_user.id)
+    await message.answer('Kechirasiz, hozirda ushbu funksiyadan foydalanib bo\'lmaydi!')
+    # try:
+    #     raise Exception('Javob chiqdi')
+    # except Exception as e:
+    #     print(e)
+    #     await message.answer(text=e.args[0])
 
 
 '''Updating admin role start'''
@@ -122,22 +119,38 @@ async def super_admin_update_admin_role_handler(callback: CallbackQuery, session
 '''Updating admin role end'''
 
 
-@super_admin_router.callback_query(StateFilter('*'), F.data == 'cancel')
-async def super_admin_cancel_handler(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
-    await bot.edit_message_reply_markup(
-        chat_id=callback.message.chat.id,
-        message_id=callback.message.message_id,
-        reply_markup=None  # This removes the inline keyboard
-    )
-    if AdminFSM.admin_to_be_updated is not None:
-        AdminFSM.admin_to_be_updated = None
-        await callback.message.answer(text='Adminni o\'zgartirish bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)
-    else:
-        await callback.message.answer(text='Yangi adminni qo\'shish bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)
+# @super_admin_router.callback_query(StateFilter('*'), F.data == 'cancel')
+# async def super_admin_cancel_handler(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+#     await bot.edit_message_reply_markup(
+#         chat_id=callback.message.chat.id,
+#         message_id=callback.message.message_id,
+#         reply_markup=None  # This removes the inline keyboard
+#     )
+#     if AdminFSM.admin_to_be_updated is not None:
+#         AdminFSM.admin_to_be_updated = None
+#         await callback.message.answer(text='Adminni o\'zgartirish bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)
+#     else:
+#         await callback.message.answer(text='Yangi adminni qo\'shish bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)
+#
+#     current_state = await state.get_state()
+#     if current_state is not None:
+#         await state.clear()
 
+
+@super_admin_router.message(StateFilter('*'), F.text == 'cancel')
+async def super_admin_cancel_operation_handler(message: Message, state: FSMContext) -> None:
     current_state = await state.get_state()
-    if current_state is not None:
-        await state.clear()
+
+    if current_state is None:
+        await message.answer(text='Bekor qilish uchun siz hali biror amaliyotni boshlamadinggiz.')
+        return
+    elif AdminFSM.admin_to_be_updated is not None:
+        AdminFSM.admin_to_be_updated = None
+        await message.answer(text='Adminni o\'zgartirish bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)
+    else:
+        await message.answer(text='Yangi adminni qo\'shish bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)
+
+    await state.clear()
 
 
 # @super_admin_router.callback_query(StateFilter('*'), F.data == 'next')

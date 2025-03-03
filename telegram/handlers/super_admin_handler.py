@@ -1,6 +1,6 @@
 from typing import Any
 
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -87,7 +87,7 @@ async def super_admin_view_questions_handler(message: Message, session: AsyncSes
 '''Updating admin role start'''
 
 @super_admin_router.callback_query(StateFilter(None), F.data.startswith('update_admin_'))
-async def super_admin_update_admin_role_handler(callback: CallbackQuery, session: AsyncSession, state: FSMContext) -> None:
+async def super_admin_update_admin_role_handler(callback: CallbackQuery, session: AsyncSession, state: FSMContext, bot: Bot) -> None:
     admin_tg_id = int(callback.data.split('_')[-1])
 
     if admin_tg_id == callback.from_user.id:
@@ -102,10 +102,52 @@ async def super_admin_update_admin_role_handler(callback: CallbackQuery, session
     AdminFSM.admin_to_be_updated = admin_user
     await state.set_state(AdminFSM.username)
 
-    await callback.message.answer('Foydalanuvchining yangi telegram username\'ini kiriting:')
-    # todo: send inline keyboard here with buttons next and cancel
+    temp_message = await callback.message.answer(
+        text='Updating admin...',
+        reply_markup=ReplyKeyboardRemove()
+    )
+    print(f'temp message: {temp_message}')
+    await bot.delete_message(chat_id=temp_message.chat.id, message_id=temp_message.message_id)
+    await callback.message.answer(
+        text='Foydalanuvchining yangi telegram username\'ini kiriting:',
+        # reply_markup=get_callback_buttons(
+        #     buttons={
+        #         # 'Keyingisi': 'next',
+        #         'Bekor qilish': 'cancel'
+        #     },
+        #     sizes=(2, )
+        # )
+    )
 
 '''Updating admin role end'''
+
+
+@super_admin_router.callback_query(StateFilter('*'), F.data == 'cancel')
+async def super_admin_cancel_handler(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+    await bot.edit_message_reply_markup(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.message_id,
+        reply_markup=None  # This removes the inline keyboard
+    )
+    if AdminFSM.admin_to_be_updated is not None:
+        AdminFSM.admin_to_be_updated = None
+        await callback.message.answer(text='Adminni o\'zgartirish bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)
+    else:
+        await callback.message.answer(text='Yangi adminni qo\'shish bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)
+
+    current_state = await state.get_state()
+    if current_state is not None:
+        await state.clear()
+
+
+# @super_admin_router.callback_query(StateFilter('*'), F.data == 'next')
+# async def super_admin_next_button_handler(callback: CallbackQuery, state: FSMContext, bot: Bot):
+#     current_state = await state.get_state()
+#     if current_state is None:
+#         await callback.message.answer(text='Keyingisi tugmasidan foydalanish uchun siz hali biror amaliyotni boshlamadinggiz.')
+#         return
+#     elif AdminFSM.admin_to_be_updated is not None:
+
 
 
 '''Adding admin start'''
@@ -118,12 +160,21 @@ async def super_admin_add_admin_handler(message: Message, state: FSMContext) -> 
 
 @super_admin_router.message(AdminFSM.tg_id, F.text)
 async def super_admin_add_admin_tg_id_handler(message: Message, state: FSMContext) -> None:
+    if message.text == '>':
+        await message.answer('Kechirasiz, foydalanuvchi telegram ID\'sini kiritish majburiy. '
+                             'Iltimos, foydalanuvchi telegram ID\'sini kiriting:')
+        return
+    elif message.text == '<':
+        await message.answer('Siz 1-qadamdasiz, bundan oldin boshqa qadam yo\'q. '
+                             'Iltimos, foydalanuvchi telegram ID\'sini kiriting:')
+        return
+
     tg_id: int = None
     try:
         tg_id = int(message.text)
     except Exception as e:
         print(e)
-        await message.answer('Iltimos, foydalanuvchi telegram ID\'sini kiriting:')
+        await message.answer('Iltimos, foydalanuvchi telegram ID\'sini to\'g\'ri kiriting:')
         return
 
     await state.update_data({'tg_id': tg_id})
@@ -134,15 +185,39 @@ async def super_admin_add_admin_tg_id_handler(message: Message, state: FSMContex
 @super_admin_router.message(AdminFSM.username, F.text)
 async def super_admin_add_admin_username_handler(message: Message, session: AsyncSession, state: FSMContext) -> None:
     username = message.text
+
+    # Handle next or prev operations
+    if username == '>':
+        if AdminFSM.admin_to_be_updated is not None:
+            await state.update_data({'username': AdminFSM.admin_to_be_updated.username})
+            await message.answer('Siz keyingi qadamdasiz. Foydalanuvchining yangi ismini kiriting:')
+        else:
+            await state.update_data({'username': None})
+            await message.answer('Siz keyingi qadamdasiz. Foydalanuvchining ismini kiriting:')
+
+        await state.set_state(AdminFSM.name)
+        return
+    elif username == '<':
+        if AdminFSM.admin_to_be_updated is not None:
+            await message.answer('Siz 1-qadamdasiz, bundan oldin boshqa qadam yo\'q. '
+                                 'Iltimos, foydalanuvchining yangi telegram username\'ini kiriting:')
+        else:
+            await state.set_state(AdminFSM.tg_id)
+            await message.answer('Siz avvalgi qadamdasiz. Foydalanuvchining telegram ID\'sini kiriting:')
+        return
+
+    # Handle incorrect tg username input
     if not username.startswith('@'):
         await message.answer('Iltimos, foydalanuvchi telegram username\'ini kiriting ("@username" kabi):')
         return
 
+    # Check the uniqueness of the provided tg username
     user = await get_user_by_username(session=session, username=username)
     if user is not None:
         await message.answer('Kechirasiz, bu telegram username band! Iltimos, boshqa telegram username kiriting:')
         return
 
+    # Update state, and proceed to the next step
     await state.update_data({'username': username})
     await state.set_state(AdminFSM.name)
 
@@ -154,7 +229,28 @@ async def super_admin_add_admin_username_handler(message: Message, session: Asyn
 
 @super_admin_router.message(AdminFSM.name, F.text)
 async def super_admin_add_admin_name_handler(message: Message, state: FSMContext) -> None:
-    await state.update_data({'name': message.text})
+    name = message.text
+
+    if name == '>':
+        if AdminFSM.admin_to_be_updated is not None:
+            await state.update_data({'name': AdminFSM.admin_to_be_updated.name})
+            await state.set_state(AdminFSM.surname)
+            await message.answer('Siz keyingi qadamdasiz. Foydalanuvchining yangi sharifini kiriting:')
+            return
+        else:
+            await message.answer('Kechirasiz, foydalanuvchining ismini kiritish majburiy. '
+                                 'Iltimos, foydalanuvchining ismini kiriting:')
+            return
+    elif name == '<':
+        if AdminFSM.admin_to_be_updated is not None:
+            await message.answer('Siz avvalgi qadamdasiz. Foydalanuvchining yangi telegram username\'ini kiriting: ')
+        else:
+            await message.answer('Siz avvalgi qadamdasiz. Foydalanuvchining telegram username\'ini kiriting:')
+
+        await state.set_state(AdminFSM.username)
+        return
+
+    await state.update_data({'name': name})
     await state.set_state(AdminFSM.surname)
 
     if AdminFSM.admin_to_be_updated is not None:
@@ -165,7 +261,26 @@ async def super_admin_add_admin_name_handler(message: Message, state: FSMContext
 
 @super_admin_router.message(AdminFSM.surname, F.text)
 async def super_admin_add_admin_surname_handler(message: Message, session: AsyncSession, state: FSMContext) -> None:
-    await state.update_data({'surname': message.text})
+    surname = message.text
+
+    if surname == '>':
+        if AdminFSM.admin_to_be_updated is not None:
+            await state.update_data({'surname': AdminFSM.admin_to_be_updated.surname})
+            await message.answer('Siz keyingi qadamdasiz')
+        else:
+            await state.update_data({'surname': None})
+            await message.answer('Siz keyingi qadamdasiz')
+    elif surname == '<':
+        if AdminFSM.admin_to_be_updated is not None:
+            await message.answer('Siz avvalgi qadamdasiz. Foydalanuvchining yangi ismini kiriting:')
+        else:
+            await message.answer('Siz avvalgi qadamdasiz. Foydalanuvchining ismini kiriting:')
+
+        await state.set_state(AdminFSM.name)
+        return
+    else:
+        await state.update_data({'surname': surname})
+
     await state.set_state(AdminFSM.role_id)
     await message.answer('Foydalanuvchi uchun quyidagi rollardan birini tanlang:')
     roles = await get_roles(session=session)
@@ -229,12 +344,37 @@ async def super_admin_add_admin_role_handler(callback: CallbackQuery, session: A
         await update_user(session=session, user_id=user.id, data=new_admin, check_role=False)
 
     if AdminFSM.admin_to_be_updated is not None:
-        await callback.message.answer(text='Foydalanuvchi muvaffaqqiyatli o\'zgartirildi', reply_markup=SUPER_ADMIN_KEYBOARD)
+        await callback.message.answer(text='Foydalanuvchi ma\'lumotlari muvaffaqqiyatli o\'zgartirildi', reply_markup=SUPER_ADMIN_KEYBOARD)
     else:
         await callback.message.answer(text='Yangi admin muvaffaqqiyatli qo\'shildi', reply_markup=SUPER_ADMIN_KEYBOARD)
 
     await state.clear()
     AdminFSM.admin_to_be_updated = None
+
+
+# Handle next or prev operation when user is in the role_id state
+@super_admin_router.message(AdminFSM.role_id, F.text)
+async def super_admin_next_or_prev_of_admin_role_handler(message: Message, state: FSMContext) -> None:
+    command = message.text
+
+    if command == '>':
+        if AdminFSM.admin_to_be_updated is not None:
+            await state.update_data({'role_id': AdminFSM.admin_to_be_updated.role_id})
+            AdminFSM.admin_to_be_updated = None
+            await state.clear()
+            await message.answer(text='Foydalanuvchi ma\'lumotlari muvaffaqqiyatli o\'zgartirildi', reply_markup=SUPER_ADMIN_KEYBOARD)
+            return
+        else:
+            await message.answer(text='Kechirasiz, foydalanuvchining rolini kiritish majburiy. '
+                                     'Iltimos, foydalanuvchi uchun yuqoridagi rollardan birini tanlang.')
+            return
+    elif command == '<':
+        if AdminFSM.admin_to_be_updated is not None:
+            await message.answer(text='Siz avvalgi qadamdasiz. Foydalanuvchining yangi sharifini kiriting:')
+        else:
+            await message.answer(text='Siz avvalgi qadamdasiz. Foydalanuvchi sharifini kiriting:')
+
+        await state.set_state(AdminFSM.surname)
 
 '''Adding admin end'''
 

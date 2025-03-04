@@ -53,7 +53,12 @@ async def super_admin_start_handler(message: Message) -> None:
 async def super_admin_view_admins_handler(message: Message, session: AsyncSession) -> None:
     admins = await get_all_admins(session=session)
 
+    if len(admins) == 0:
+        await message.answer('Hozirda hech qanday admin yo\'q!')
+        return
+
     await message.answer(text='***Barcha adminlar ro\'yxati***')
+
     for admin in admins:
         await message.answer(
             text=f'User telegram id: {admin.user_tg_id},\n'
@@ -66,6 +71,7 @@ async def super_admin_view_admins_handler(message: Message, session: AsyncSessio
                 buttons={'Foydalanuvchi ma\'lumotlarini o\'zgartirish': f'update_admin_{admin.user_tg_id}'}
             ),
         )
+
     await message.answer(text='***Barcha adminlar ro\'yxati***')
 
 

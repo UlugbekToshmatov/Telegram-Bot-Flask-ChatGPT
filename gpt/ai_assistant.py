@@ -80,13 +80,54 @@ def upload_files(vector_store_id: str, *file_paths):
 
 # upload file
 def upload_file_to_vector_store(file_storage: FileStorage):
-    # attach the file(s) to the vector store
-    file_streams = [(file_storage.filename, file_storage, file_storage.content_type)]
-    file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+    try:
+        # attach the file(s) to the vector store
+        file_streams = [(file_storage.filename, file_storage, file_storage.content_type)]
+        file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+            vector_store_id=VECTOR_STORE_ID,
+            files=file_streams
+        )
+
+        print(f"File Batch: {file_batch}")
+
+        if file_batch.status == "completed" or file_batch.status == "success":
+            print(f"File uploaded successfully. File Batch: {file_batch}")
+        else:
+            print(f"File upload failed. File Batch: {file_batch}\n")
+
+        return file_batch.id
+    except Exception as e:
+        print(f"Error while uploading file: {e}")
+        return None
+
+
+# delete file
+def delete_file_from_vector_store(file_id: str):
+    try:
+        # Call the delete method to remove the file from the vector store
+        delete_response = client.beta.vector_stores.files.delete(
+            vector_store_id=VECTOR_STORE_ID,
+            file_id=file_id
+        )
+
+        if delete_response.get('status') == 'success':
+            print(f"File with ID {file_id} deleted successfully.")
+        else:
+            print(f"Failed to delete file with ID {file_id}.")
+    except Exception as e:
+        print(f"Error while deleting file: {e}")
+
+
+def get_file_id_by_name(filename: str):
+    # Query the vector store to find the file ID by filename or other metadata
+    # This is a hypothetical example and depends on your vector store API
+    response = client.beta.vector_stores.files.query(
         vector_store_id=VECTOR_STORE_ID,
-        files=file_streams
+        query={"filename": filename}
     )
-    print(f"File Batch: {file_batch}\n")
+    if response['files']:
+        return response['files'][0]['id']
+    return None
 
 
 # create assistant

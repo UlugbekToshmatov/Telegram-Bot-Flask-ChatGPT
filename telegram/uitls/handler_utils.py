@@ -17,5 +17,8 @@ def clean_response(assistant_response: str) -> str:
 def secure_filename(filename: str) -> str:
     return filename.replace(' ', '_')
 
+def secure_date_time(date_time: str) -> str:
+    return date_time.replace(' ', '_').replace(':', '-').replace('.', '_')
+
 def is_supported_file_type(filename: str):
     return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS

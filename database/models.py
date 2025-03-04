@@ -91,6 +91,7 @@ class File(Base):
     __tablename__ = "file"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    asst_file_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     tg_file_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     extension: Mapped[str] = mapped_column(String(10), nullable=False)

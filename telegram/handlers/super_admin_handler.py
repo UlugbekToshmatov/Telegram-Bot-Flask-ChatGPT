@@ -188,7 +188,6 @@ async def super_admin_add_admin_tg_id_handler(message: Message, state: FSMContex
                              'Iltimos, foydalanuvchi telegram ID\'sini kiriting:')
         return
 
-    tg_id: int = None
     try:
         tg_id = int(message.text)
     except Exception as e:

@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-from idlelib.browser import file_open
 
 from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart, StateFilter
@@ -11,11 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from werkzeug.datastructures import FileStorage
 
 from configs.config import UPLOAD_DIR
-from database.cruds.file_crud import get_all_files, upload_file, get_file_by_id, delete_file
+from database.cruds.file_crud import get_all_files, save_file_details, get_file_by_id, delete_file
 from database.cruds.role_crud import get_role_by_user_tg_id
 from database.models import File
 from enums.telegram_eunms import RoleType
-from gpt.ai_assistant import upload_file_to_vector_store, delete_file_from_vector_store
+from gpt.ai_assistant import upload_file_to_vector_store, delete_file_from_vector_store, upload_file_to_openai
 from telegram.filters.user_types import IsSuperiorAdmin
 from telegram.handlers.super_admin_handler import SUPER_ADMIN_KEYBOARD
 from telegram.keyboards.inline_keyboards import get_inline_buttons
@@ -151,6 +150,8 @@ async def superior_admin_upload_file_content_handler(message: Message, session: 
 
     current_user_role = await get_role_by_user_tg_id(session=session, user_tg_id=message.from_user.id)
 
+    # Checking if user is not none as user's role is needed below
+    # In case user is none in DB, they are required to be registered in 'users' table, and /start registers new users
     if current_user_role is None:
         await message.answer('Faylni yuklashda noma\'lum xatolik. Iltimos, /start buyrug\'ini bering.')
 
@@ -178,10 +179,14 @@ async def superior_admin_upload_file_content_handler(message: Message, session: 
         file_storage = FileStorage(stream=file_content, filename=file_name, content_type=extension, content_length=file_size)
         file_storage.save(file_upload_dir)
 
-        # Upload the file to OpenAI's Vector Store
-        uploaded_file_id = upload_file_to_vector_store(file_storage=file_storage)
+        # Upload file to OpenAI first
+        uploaded_file_id = upload_file_to_openai(file_upload_dir)
 
-        if uploaded_file_id is None:
+        # Now attach the file to OpenAI's Vector Store
+        batch_id = upload_file_to_vector_store(file_id=uploaded_file_id)
+
+        # Remove the file just saved above from local storage in case of failure while uploading the file to OpenAI
+        if uploaded_file_id is None or batch_id is None:
             if os.path.exists(file_upload_dir):
                 os.remove(file_upload_dir)
 
@@ -194,7 +199,7 @@ async def superior_admin_upload_file_content_handler(message: Message, session: 
             return
 
         # Save the file details to DB
-        await upload_file(
+        await save_file_details(
             session=session, file=File(
                 asst_file_id=uploaded_file_id,
                 tg_file_id=file_id,

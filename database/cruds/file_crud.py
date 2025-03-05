@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import File
 
 
-async def upload_file(session: AsyncSession, file: File, check_file: bool):
+async def save_file_details(session: AsyncSession, file: File, check_file: bool):
     if check_file:
         db_file = await get_file_by_name(session=session, name=file.name)
         if db_file:

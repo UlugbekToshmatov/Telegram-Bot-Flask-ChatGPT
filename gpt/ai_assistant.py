@@ -1,5 +1,4 @@
 from openai import OpenAI
-from werkzeug.datastructures import FileStorage
 
 from configs.config import OPEN_AI_API_KEY, ASSISTANT_ID, VECTOR_STORE_ID
 
@@ -79,22 +78,28 @@ def upload_files(vector_store_id: str, *file_paths):
 
 
 # upload file
-def upload_file_to_vector_store(file_storage: FileStorage):
+def upload_file_to_openai(filename: str):
     try:
-        # attach the file(s) to the vector store
-        file_streams = [(file_storage.filename, file_storage, file_storage.content_type)]
-        file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
-            vector_store_id=VECTOR_STORE_ID,
-            files=file_streams
+        response = client.files.create(
+            file=open(filename, "rb"),
+            purpose="assistants"
         )
+        print(f"Uploaded file response: {response}")
+        return response.id
+    except Exception as e:
+        print(f"Error while uploading file: {e}")
+        return None
 
+
+# upload file to vector store
+def upload_file_to_vector_store(file_id: str):
+    try:
+        # Attach the file(s) to the vector store
+        file_batch = client.beta.vector_stores.files.create_and_poll(
+            vector_store_id=VECTOR_STORE_ID,
+            file_id=file_id
+        )
         print(f"File Batch: {file_batch}")
-
-        if file_batch.status == "completed" or file_batch.status == "success":
-            print(f"File uploaded successfully. File Batch: {file_batch}")
-        else:
-            print(f"File upload failed. File Batch: {file_batch}\n")
-
         return file_batch.id
     except Exception as e:
         print(f"Error while uploading file: {e}")
@@ -104,30 +109,26 @@ def upload_file_to_vector_store(file_storage: FileStorage):
 # delete file
 def delete_file_from_vector_store(file_id: str):
     try:
-        # Call the delete method to remove the file from the vector store
+        # Detach a file by the file_id from the vector store
         delete_response = client.beta.vector_stores.files.delete(
             vector_store_id=VECTOR_STORE_ID,
             file_id=file_id
         )
-
-        if delete_response.get('status') == 'success':
-            print(f"File with ID {file_id} deleted successfully.")
-        else:
-            print(f"Failed to delete file with ID {file_id}.")
+        print(f"Delete response: {delete_response}")
     except Exception as e:
         print(f"Error while deleting file: {e}")
+        raise e
 
 
-def get_file_id_by_name(filename: str):
-    # Query the vector store to find the file ID by filename or other metadata
-    # This is a hypothetical example and depends on your vector store API
-    response = client.beta.vector_stores.files.query(
-        vector_store_id=VECTOR_STORE_ID,
-        query={"filename": filename}
+def stream_response(text: str, thread_id: str):
+    stream = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": text}],
+        stream=True,
     )
-    if response['files']:
-        return response['files'][0]['id']
-    return None
+    for chunk in stream:
+        if chunk.choices[0].delta.content is not None:
+            print(chunk.choices[0].delta.content, end="")
 
 
 # create assistant
@@ -157,7 +158,7 @@ async def create_thread():
     return new_thread.id
 
 
-async def send_message(text: str, thread_id):
+async def send_message(text: str, thread_id: str):
     try:
         client.beta.threads.messages.create(thread_id=thread_id, role="user", content=text)
         run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=ASSISTANT_ID)

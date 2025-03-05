@@ -6,6 +6,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models import Role
+from dtos.user_dto import RoleWithUserId
 
 
 async def add_roles(session: AsyncSession, roles: list[Role]) -> None:
@@ -52,10 +53,10 @@ async def get_role_by_user_id(session: AsyncSession, user_id: int) -> Role | Non
         return None
 
 
-async def get_role_by_user_tg_id(session: AsyncSession, user_tg_id: int) -> Role | None:
+async def get_role_by_user_tg_id(session: AsyncSession, user_tg_id: int) -> RoleWithUserId | None:
     try:
         sql_query = text("""
-            SELECT r.id, r.name, r.privileges 
+            SELECT u.id as user_id, r.id, r.name, r.privileges 
             FROM Role r JOIN Users u ON r.id = u.role_id 
             WHERE u.tg_id = :tg_id and u.deleted_at is NULL
         """)
@@ -65,8 +66,9 @@ async def get_role_by_user_tg_id(session: AsyncSession, user_tg_id: int) -> Role
         if role is None:
             return None
 
-        return Role(id=role.id, name=role.name, privileges=role.privileges)
+        return RoleWithUserId(user_id=role.user_id, role_id=role.id, role_name=role.name, privileges=role.privileges)
     except NoResultFound:
+        print('No Result Found')
         return None
 
 

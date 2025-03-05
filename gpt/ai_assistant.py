@@ -94,7 +94,7 @@ def upload_file_to_openai(filename: str):
 # upload file to vector store
 def upload_file_to_vector_store(file_id: str):
     try:
-        # Attach the file(s) to the vector store
+        # Attach the file to the vector store
         file_batch = client.beta.vector_stores.files.create_and_poll(
             vector_store_id=VECTOR_STORE_ID,
             file_id=file_id

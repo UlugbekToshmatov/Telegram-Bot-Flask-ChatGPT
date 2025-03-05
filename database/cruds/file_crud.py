@@ -34,11 +34,12 @@ async def get_file_by_id(session: AsyncSession, file_id: int) -> File:
     return result.scalars().first()
 
 
-async def delete_file(session: AsyncSession, file_id: int, new_file_name, new_path: str) -> None:
-    query = update(File).where(File.id == file_id and File.deleted_at == None).values(
-        name=new_file_name,
-        path=new_path,
-        deleted_at=datetime.now()
+async def delete_file(session: AsyncSession, params: {str: str|int}) -> None:
+    query = update(File).where(File.id == params['file_id'] and File.deleted_at == None).values(
+        name=params['new_file_name'],
+        path=params['new_path'],
+        deleted_at=datetime.now(),
+        deleted_by=params['user_id']
     )
     await session.execute(query)
     await session.commit()

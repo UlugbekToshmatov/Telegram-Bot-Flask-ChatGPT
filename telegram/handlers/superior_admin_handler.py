@@ -12,6 +12,7 @@ from werkzeug.datastructures import FileStorage
 from configs.config import UPLOAD_DIR
 from database.cruds.file_crud import get_all_files, save_file_details, get_file_by_id, delete_file
 from database.cruds.role_crud import get_role_by_user_tg_id
+from database.cruds.user_crud import get_user_by_tg_id
 from database.models import File
 from enums.telegram_eunms import RoleType
 from gpt.ai_assistant import upload_file_to_vector_store, delete_file_from_vector_store, upload_file_to_openai
@@ -105,8 +106,18 @@ async def superior_admin_delete_file_handler(callback: CallbackQuery, session: A
             # Rename the filename to deleted_at_... in local storage
             os.rename(file.path, new_path)
 
+            print(f'Callback data: {callback}')
+
+            # Get current user id to indicate who is deleting the file
+            current_user = await get_user_by_tg_id(session=session, tg_id=callback.from_user.id)
+
+            print(f'Current user: {current_user}')
+
             # Update the file to be deleted in DB
-            await delete_file(session=session, file_id=file_id, new_file_name=new_file_name, new_path=new_path)
+            await delete_file(
+                session=session,
+                params={'user_id': current_user.id, 'file_id': file_id, 'new_file_name': new_file_name, 'new_path': new_path}
+            )
 
             # Delete the file from the OpenAI's vector store
             delete_file_from_vector_store(file_id=file.asst_file_id)
@@ -192,7 +203,7 @@ async def superior_admin_upload_file_content_handler(message: Message, session: 
 
             await state.clear()
 
-            if current_user_role.name == RoleType.SUPER_ADMIN.name:
+            if current_user_role.role_name == RoleType.SUPER_ADMIN.name:
                 await message.answer('Faylni yuklashda noma\'lum xatolik', reply_markup=SUPER_ADMIN_KEYBOARD)
             else:
                 await message.answer('Faylni yuklashda noma\'lum xatolik', reply_markup=SUPERIOR_ADMIN_KEYBOARD)
@@ -208,7 +219,7 @@ async def superior_admin_upload_file_content_handler(message: Message, session: 
                 content_type=content_type,
                 size=file_size,
                 path=file_upload_dir,
-                uploaded_by=message.from_user.id
+                uploaded_by=current_user_role.user_id
             ),
             check_file=False
         )
@@ -216,7 +227,7 @@ async def superior_admin_upload_file_content_handler(message: Message, session: 
         print(e)
         await state.clear()
 
-        if current_user_role.name == RoleType.SUPER_ADMIN.name:
+        if current_user_role.role_name == RoleType.SUPER_ADMIN.name:
             await message.answer('Faylni yuklashda noma\'lum xatolik', reply_markup=SUPER_ADMIN_KEYBOARD)
         else:
             await message.answer('Faylni yuklashda noma\'lum xatolik', reply_markup=SUPERIOR_ADMIN_KEYBOARD)
@@ -224,7 +235,7 @@ async def superior_admin_upload_file_content_handler(message: Message, session: 
 
     await state.clear()
 
-    if current_user_role.name == RoleType.SUPER_ADMIN.name:
+    if current_user_role.role_name == RoleType.SUPER_ADMIN.name:
         await message.answer(text='Fayl muvaffaqqiyatli yuklandi!', reply_markup=SUPER_ADMIN_KEYBOARD)
     else:
         await message.answer(text='Fayl muvaffaqqiyatli yuklandi!', reply_markup=SUPERIOR_ADMIN_KEYBOARD)

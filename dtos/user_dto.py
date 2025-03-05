@@ -34,3 +34,11 @@ class UserWithRole:
         self.user_surname = user_surname
         self.role_name = role_name
         self.privileges = privileges
+
+
+class RoleWithUserId:
+    def __init__(self, user_id: int, role_id: int, role_name: str, privileges: str):
+        self.user_id = user_id
+        self.role_id = role_id
+        self.role_name = role_name
+        self.privileges = privileges

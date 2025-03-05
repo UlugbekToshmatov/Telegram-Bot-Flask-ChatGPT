@@ -2,9 +2,10 @@ from aiogram.filters import Filter
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import User, Role
 from database.cruds.role_crud import get_role_by_name, get_role_by_user_tg_id
 from database.cruds.user_crud import add_user
+from database.models import User
+from dtos.user_dto import RoleWithUserId
 from enums.telegram_eunms import UserPrivileges, RoleType
 
 
@@ -88,7 +89,7 @@ async def add_new_user(message: Message, session: AsyncSession) -> None:
     )
 
 
-def check_privileges(role: Role, user_privileges: list[UserPrivileges]) -> bool:
+def check_privileges(role: RoleWithUserId, user_privileges: list[UserPrivileges]) -> bool:
     privileges = role.privileges.split(';')
 
     for user_privilege in user_privileges:

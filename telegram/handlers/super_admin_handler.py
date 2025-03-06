@@ -7,6 +7,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from database.cruds.reaction_crud import view_conversations
 from database.cruds.role_crud import get_roles, get_role_by_name
 from database.cruds.user_crud import get_all_admins, get_user_by_tg_id, update_user, add_user, get_super_admins, \
     get_user_by_username
@@ -78,13 +79,12 @@ async def super_admin_view_admins_handler(message: Message, session: AsyncSessio
 # for testing exception error message
 @super_admin_router.message(F.text == 'Savol-javoblarni ko\'rish')
 async def super_admin_view_questions_handler(message: Message, session: AsyncSession) -> None:
-    # user = await get_user_by_tg_id(session=session, tg_id=message.from_user.id)
-    await message.answer('Kechirasiz, hozirda ushbu funksiyadan foydalanib bo\'lmaydi!')
-    # try:
-    #     raise Exception('Javob chiqdi')
-    # except Exception as e:
-    #     print(e)
-    #     await message.answer(text=e.args[0])
+    await message.answer('***Savol-javoblar ro\'yxati***')
+    conversations = await view_conversations(session=session)
+    print(conversations)
+    await message.answer(conversations)
+    await message.answer('Ushbu ro\'yxatni yaxshilangan formatda ko\'rish uchun, iltimos, ro\'yxatni .txt formatdagi faylga ko\'ring')
+    await message.answer('***Savol-javoblar ro\'yxati***')
 
 
 '''Updating admin role start'''

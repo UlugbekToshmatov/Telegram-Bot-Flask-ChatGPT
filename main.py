@@ -5,6 +5,7 @@ from aiogram import Bot, Dispatcher
 from configs.config import TELEGRAM_TOKEN
 from database.engine import on_startup, on_shutdown, session_maker
 from database.middleware import DataBaseSession
+from telegram.handlers.admin_handler import admin_router
 from telegram.handlers.super_admin_handler import super_admin_router
 from telegram.handlers.superior_admin_handler import superior_admin_router
 from telegram.handlers.user_handler import user_router
@@ -14,6 +15,7 @@ bot = Bot(token=TELEGRAM_TOKEN)
 dp = Dispatcher()
 dp.include_router(super_admin_router)
 dp.include_router(superior_admin_router)
+dp.include_router(admin_router)
 dp.include_router(user_router)
 
 

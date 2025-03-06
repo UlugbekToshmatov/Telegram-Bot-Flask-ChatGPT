@@ -69,8 +69,26 @@ class IsSuperiorAdmin(Filter):
             await add_new_user(message=message, session=session)
             return False
         else:
-            # if role is found, then check if the requesting user has superior admin privileges
+            # if role is found, then check if the requesting user has at least superior admin privileges
             return check_privileges(role=role, user_privileges=[UserPrivileges.VIEW_FILES, UserPrivileges.VIEW_ADMINS])
+
+
+class IsAdmin(Filter):
+    def __init__(self) -> None:
+        pass
+
+    async def __call__(self, message: Message, session: AsyncSession) -> bool:
+        # get role by user tg id
+        role = await get_role_by_user_tg_id(session=session, user_tg_id=message.from_user.id)
+
+        if role is None:
+            # if any role is not found by the user tg id, then user with that tg id does not exist yet
+            # thus, add the new user with default role 'user'
+            await add_new_user(message=message, session=session)
+            return False
+        else:
+            # if role is found, then check if the requesting user has at least admin privileges
+            return check_privileges(role=role, user_privileges=[UserPrivileges.VIEW_MESSAGES, UserPrivileges.VIEW_FILES, UserPrivileges.VIEW_ADMINS])
 
 
 async def add_new_user(message: Message, session: AsyncSession) -> None:

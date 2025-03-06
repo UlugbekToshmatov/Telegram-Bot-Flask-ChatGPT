@@ -216,25 +216,35 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
 
     global temp_message
     if user_role.name != RoleType.USER.name:
-        temp_message = await message.answer(text='Iltimos, kutib turing.')
+        temp_message = await message.answer(text='Iltimos, kutib turing...')
     else:
-        temp_message = await message.answer(text='Iltimos, kutib turing.', reply_markup=ReplyKeyboardRemove())
+        temp_message = await message.answer(text='Iltimos, kutib turing...', reply_markup=ReplyKeyboardRemove())
 
+    await bot.delete_message(chat_id=chat_id, message_id=temp_message.message_id)
     await asyncio.sleep(1)
-    await bot.edit_message_text(text='Iltimos, kutib turing..', chat_id=chat_id, message_id=temp_message.message_id)
-    await asyncio.sleep(1)
-    await bot.edit_message_text(text='Iltimos, kutib turing...', chat_id=chat_id, message_id=temp_message.message_id)
-    await asyncio.sleep(1)
-    # await bot.delete_message(chat_id=chat_id, message_id=temp_message.message_id)
-
-    await bot.edit_message_text(
-        text=assistant_response, chat_id=chat_id, message_id=temp_message.message_id,
+    await message.answer(
+        text=assistant_response,
         reply_markup=get_callback_buttons(buttons={
             'Qoniqarli': f'satisfied',
             'Qoniqarsiz': f'dissatisfied_{assistant_message.id}',
         },
             sizes=(2,))
     )
+
+    # await bot.edit_message_text(text='Iltimos, kutib turing..', chat_id=chat_id, message_id=temp_message.message_id)
+    # await asyncio.sleep(1)
+    # await bot.edit_message_text(text='Iltimos, kutib turing...', chat_id=chat_id, message_id=temp_message.message_id)
+    # await asyncio.sleep(1)
+    # # await bot.delete_message(chat_id=chat_id, message_id=temp_message.message_id)
+    #
+    # await bot.edit_message_text(
+    #     text=assistant_response, chat_id=chat_id, message_id=temp_message.message_id,
+    #     reply_markup=get_callback_buttons(buttons={
+    #         'Qoniqarli': f'satisfied',
+    #         'Qoniqarsiz': f'dissatisfied_{assistant_message.id}',
+    #     },
+    #         sizes=(2,))
+    # )
 
     # await message.answer(
     #     assistant_response,

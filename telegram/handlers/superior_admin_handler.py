@@ -11,6 +11,7 @@ from werkzeug.datastructures import FileStorage
 
 from configs.config import UPLOAD_DIR
 from database.cruds.file_crud import get_all_files, save_file_details, get_file_by_id, delete_file
+from database.cruds.reaction_crud import view_conversations
 from database.cruds.role_crud import get_role_by_user_tg_id
 from database.cruds.user_crud import get_user_by_tg_id
 from database.models import File
@@ -44,6 +45,17 @@ async def superior_admin_start_handler(message: Message):
         text='Amaliyot turini tanglang yoki assistent botga savolinggizni yozing:',
         reply_markup=SUPERIOR_ADMIN_KEYBOARD
     )
+
+
+
+@superior_admin_router.message(F.text == 'Savol-javoblarni ko\'rish')
+async def super_admin_view_questions_handler(message: Message, session: AsyncSession) -> None:
+    await message.answer('***Savol-javoblar ro\'yxati***')
+    conversations = await view_conversations(session=session)
+    print(conversations)
+    await message.answer(conversations)
+    await message.answer('Ushbu ro\'yxatni yaxshilangan formatda ko\'rish uchun, iltimos, ro\'yxatni .txt formatdagi faylga ko\'ring')
+    await message.answer('***Savol-javoblar ro\'yxati***')
 
 
 @superior_admin_router.message(F.text == 'Fayllarni ko\'rish')

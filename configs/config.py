@@ -10,6 +10,8 @@ ASSISTANT_ID = os.getenv('ASSISTANT_ID')
 VECTOR_STORE_ID = os.getenv('VECTOR_STORE_ID')
 DB_LITE = os.getenv('DB_LITE')
 DB_URL = os.getenv('DB_URL')
+DEVELOPERS_TELEGRAM_ID = os.getenv('DEVELOPERS_TELEGRAM_ID')
+DEVELOPERS_TELEGRAM_USERNAME = os.getenv('DEVELOPERS_TELEGRAM_USERNAME')
 
 UPLOAD_DIR = os.path.join('static', 'uploads')
 

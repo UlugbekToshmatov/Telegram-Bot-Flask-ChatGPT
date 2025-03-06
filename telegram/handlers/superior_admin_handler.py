@@ -47,14 +47,31 @@ async def superior_admin_start_handler(message: Message):
     )
 
 
+@superior_admin_router.message(StateFilter('*'), F.text == 'cancel')
+async def superior_admin_cancel_operation_handler(message: Message, session: AsyncSession, state: FSMContext) -> None:
+    current_state = await state.get_state()
+
+    if current_state is None:
+        await message.answer(text='Bekor qilish uchun siz hali fayl yuklash amaliyotini boshlamadinggiz!')
+        return
+    else:
+        current_user_role = await get_role_by_user_tg_id(session=session, user_tg_id=message.from_user.id)
+
+        if current_user_role.role_name == RoleType.SUPER_ADMIN.name:
+            await message.answer(text='Fayl yuklash bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)
+        else:
+            await message.answer(text='Fayl yuklash bekor qilindi', reply_markup=SUPERIOR_ADMIN_KEYBOARD)
+
+    await state.clear()
+
 
 @superior_admin_router.message(F.text == 'Savol-javoblarni ko\'rish')
-async def super_admin_view_questions_handler(message: Message, session: AsyncSession) -> None:
+async def superior_admin_view_questions_handler(message: Message, session: AsyncSession) -> None:
     await message.answer('***Savol-javoblar ro\'yxati***')
     conversations = await view_conversations(session=session)
     print(conversations)
     await message.answer(conversations)
-    await message.answer('Ushbu ro\'yxatni yaxshilangan formatda ko\'rish uchun, iltimos, ro\'yxatni .txt formatdagi faylga ko\'ring')
+    await message.answer('Ushbu ro\'yxatni yaxshilangan formatda ko\'rish uchun, iltimos, ro\'yxatni .txt formatdagi faylga ko\'chiring')
     await message.answer('***Savol-javoblar ro\'yxati***')
 
 

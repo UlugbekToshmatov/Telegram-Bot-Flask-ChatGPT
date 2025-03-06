@@ -5,6 +5,7 @@ import logging
 from sqlalchemy import select, update, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from configs.config import DEVELOPERS_TELEGRAM_ID
 from database.models import User
 from database.cruds.role_crud import get_role
 from dtos.user_dto import UserWithRole, get_user_from_query_result
@@ -66,9 +67,9 @@ async def get_all_admins(session: AsyncSession) -> list[UserWithRole]:
     sql_query = text("""
         SELECT u.id, u.tg_id, u.username, u.name, u.surname, r.name as r_name, r.privileges 
         FROM users u JOIN role r ON u.role_id = r.id 
-        WHERE r.name!=:role_name AND r.deleted_at IS NULL AND u.tg_id!=341330802
+        WHERE r.name!=:role_name AND r.deleted_at IS NULL AND u.tg_id!=:dev_tg_id
     """)
-    result = await session.execute(sql_query, {'role_name': RoleType.USER.name})
+    result = await session.execute(sql_query, {'role_name': RoleType.USER.name, 'dev_tg_id': int(DEVELOPERS_TELEGRAM_ID)})
     admins: list[UserWithRole] = []
 
     for admin in result.fetchall():

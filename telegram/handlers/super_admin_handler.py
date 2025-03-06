@@ -8,7 +8,7 @@ from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.cruds.reaction_crud import view_conversations
-from database.cruds.role_crud import get_roles, get_role_by_name
+from database.cruds.role_crud import get_roles, get_role_by_name, get_role_by_user_tg_id
 from database.cruds.user_crud import get_all_admins, get_user_by_tg_id, update_user, add_user, get_super_admins, \
     get_user_by_username
 from database.models import User
@@ -83,7 +83,7 @@ async def super_admin_view_questions_handler(message: Message, session: AsyncSes
     conversations = await view_conversations(session=session)
     print(conversations)
     await message.answer(conversations)
-    await message.answer('Ushbu ro\'yxatni yaxshilangan formatda ko\'rish uchun, iltimos, ro\'yxatni .txt formatdagi faylga ko\'ring')
+    await message.answer('Ushbu ro\'yxatni yaxshilangan formatda ko\'rish uchun, iltimos, ro\'yxatni .txt formatdagi faylga ko\'chiring')
     await message.answer('***Savol-javoblar ro\'yxati***')
 
 
@@ -178,7 +178,7 @@ async def super_admin_add_admin_handler(message: Message, state: FSMContext) -> 
 
 
 @super_admin_router.message(AdminFSM.tg_id, F.text)
-async def super_admin_add_admin_tg_id_handler(message: Message, state: FSMContext) -> None:
+async def super_admin_add_admin_tg_id_handler(message: Message, session: AsyncSession, state: FSMContext) -> None:
     if message.text == '>':
         await message.answer('Kechirasiz, foydalanuvchi telegram ID\'sini kiritish majburiy. '
                              'Iltimos, foydalanuvchi telegram ID\'sini kiriting:')
@@ -193,6 +193,13 @@ async def super_admin_add_admin_tg_id_handler(message: Message, state: FSMContex
     except Exception as e:
         print(e)
         await message.answer('Iltimos, foydalanuvchi telegram ID\'sini to\'g\'ri kiriting:')
+        return
+
+    user_role = await get_role_by_user_tg_id(session=session, user_tg_id=tg_id)
+
+    if user_role is not None and user_role.role_name != RoleType.USER.name:
+        await message.answer('Kechirasiz, ushbu telegram ID\'li admin allaqachon mavjud. '
+                             'Iltimos, boshqa telegram ID kiriting yoki o\'sha admin ma\'lumotlarini o\'zgartiring.')
         return
 
     await state.update_data({'tg_id': tg_id})

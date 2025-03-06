@@ -1,6 +1,7 @@
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from configs.config import DEVELOPERS_TELEGRAM_ID, DEVELOPERS_TELEGRAM_USERNAME
 from database.cruds.chat_crud import get_chat_by_user_tg_id, create_chat
 from database.models import User, Chat
 from database.cruds.role_crud import get_role_by_name
@@ -19,8 +20,8 @@ async def add_initial_super_admin(session: AsyncSession):
         await add_user(
             session=session,
             user=User(
-                tg_id=341330802,
-                username='@On1ineNow',
+                tg_id=int(DEVELOPERS_TELEGRAM_ID),
+                username=DEVELOPERS_TELEGRAM_USERNAME,
                 name='online',
                 password='@On1ineNowW123',
                 role_id=super_admin_role.id,

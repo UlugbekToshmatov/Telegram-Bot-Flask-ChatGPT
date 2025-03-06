@@ -32,5 +32,5 @@ async def admin_view_questions_handler(message: Message, session: AsyncSession):
     conversations = await view_conversations(session=session)
     print(conversations)
     await message.answer(conversations)
-    await message.answer('Ushbu ro\'yxatni yaxshilangan formatda ko\'rish uchun, iltimos, ro\'yxatni .txt formatdagi faylga ko\'ring')
+    await message.answer('Ushbu ro\'yxatni yaxshilangan formatda ko\'rish uchun, iltimos, ro\'yxatni .txt formatdagi faylga ko\'chiring')
     await message.answer('***Savol-javoblar ro\'yxati***')

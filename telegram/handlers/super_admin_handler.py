@@ -7,7 +7,6 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.cruds.reaction_crud import view_conversations
 from database.cruds.role_crud import get_roles, get_role_by_name, get_role_by_user_tg_id
 from database.cruds.user_crud import get_all_admins, get_user_by_tg_id, update_user, add_user, get_super_admins, \
     get_user_by_username
@@ -76,17 +75,6 @@ async def super_admin_view_admins_handler(message: Message, session: AsyncSessio
     await message.answer(text='***Barcha adminlar ro\'yxati***')
 
 
-# for testing exception error message
-@super_admin_router.message(F.text == 'Savol-javoblarni ko\'rish')
-async def super_admin_view_questions_handler(message: Message, session: AsyncSession) -> None:
-    await message.answer('***Savol-javoblar ro\'yxati***')
-    conversations = await view_conversations(session=session)
-    print(conversations)
-    await message.answer(conversations)
-    await message.answer('Ushbu ro\'yxatni yaxshilangan formatda ko\'rish uchun, iltimos, ro\'yxatni .txt formatdagi faylga ko\'chiring')
-    await message.answer('***Savol-javoblar ro\'yxati***')
-
-
 '''Updating admin role start'''
 
 @super_admin_router.callback_query(StateFilter(None), F.data.startswith('update_admin_'))
@@ -113,7 +101,7 @@ async def super_admin_update_admin_role_handler(callback: CallbackQuery, session
     await bot.delete_message(chat_id=temp_message.chat.id, message_id=temp_message.message_id)
     await callback.message.answer(
         text='Foydalanuvchining yangi telegram username\'ini kiriting:',
-        # reply_markup=get_callback_buttons(
+        # reply_markup=get_callback_buttons(    todo: inform super and superior admins about their hidden capabilities
         #     buttons={
         #         # 'Keyingisi': 'next',
         #         'Bekor qilish': 'cancel'

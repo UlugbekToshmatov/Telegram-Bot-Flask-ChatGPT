@@ -14,5 +14,6 @@ DEVELOPERS_TELEGRAM_ID = os.getenv('DEVELOPERS_TELEGRAM_ID')
 DEVELOPERS_TELEGRAM_USERNAME = os.getenv('DEVELOPERS_TELEGRAM_USERNAME')
 
 UPLOAD_DIR = os.path.join('static', 'uploads')
+DOWNLOAD_DIR = os.path.join('static', 'downloads')
 
 # logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)

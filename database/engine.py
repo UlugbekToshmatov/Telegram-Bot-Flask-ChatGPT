@@ -6,8 +6,8 @@ from database.utils.role_utils import add_initial_roles
 from database.utils.user_utils import add_initial_super_admin
 
 # echo=True implies to show sql commands on console
-# engine = create_async_engine(DB_URL, echo=True)
-engine = create_async_engine(DB_LITE, echo=True)
+engine = create_async_engine(DB_URL, echo=True)
+# engine = create_async_engine(DB_LITE, echo=True)
 
 # expire_on_commit=False instructs not to close the current session after commit command in order to continue
 # working with the current session

@@ -24,7 +24,7 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     # nullable because users may request from web API too
-    tg_id: Mapped[int] = mapped_column(String(64), nullable=True, unique=True)
+    tg_id: Mapped[int] = mapped_column(Integer, nullable=True, unique=True)
     # Telegram username while adding new admins in order to find and contact admins quickly
     username: Mapped[str] = mapped_column(String(100), nullable=True)
     name: Mapped[str] = mapped_column(String(30), nullable=False)

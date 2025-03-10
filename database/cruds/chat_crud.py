@@ -49,9 +49,9 @@ async def get_chat_by_user_tg_id(session: AsyncSession, user_tg_id: int) -> Chat
               AND u.deleted_at IS NULL
               AND c.deleted_at IS NULL
               AND c.chat_type = :chat_type
-              AND c.created_at >= date('now')
-              AND c.created_at < date('now', '+1 day')
-        """)    # todo: replace the date() function with CURRENT_DATE + INTERVAL('1 day') in Postgres
+              AND c.created_at >= CURRENT_DATE
+              AND c.created_at < CURRENT_DATE + INTERVAL '1 day'
+        """)
         result = await session.execute(sql_query, {'user_tg_id': user_tg_id, 'chat_type': ChatType.TELEGRAM_API.name})
         chat = result.fetchone()
         if chat is None:

@@ -19,7 +19,6 @@ from telegram.keyboards.inline_keyboards import get_callback_buttons
 from telegram.uitls.handler_utils import clean_response, greetings, leave_takings
 
 user_router = Router()
-threads = ['thread_2T5fgk48FH1VIKPGgVjvvS0n', 'thread_GE9W4ld7kJZPwuclIxfIs3tY']
 
 
 class UserDissatisfactionFSM(StatesGroup):

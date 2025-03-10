@@ -1,5 +1,5 @@
-from sqlalchemy import Text, String, Integer, DateTime, func, ForeignKey, Boolean, Numeric
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, backref
+from sqlalchemy import Text, String, Integer, DateTime, func, ForeignKey, Boolean, Numeric, BigInteger
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -13,7 +13,7 @@ class Role(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(15), nullable=False)
-    privileges: Mapped[str] = mapped_column(String(250), nullable=False)
+    privileges: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # Adding the reverse relationship to users to access all users associated with one type of role using role.users
     users: Mapped["User"] = relationship("User", back_populates="role")
@@ -24,11 +24,11 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     # nullable because users may request from web API too
-    tg_id: Mapped[int] = mapped_column(Integer, nullable=True, unique=True)
+    tg_id: Mapped[int] = mapped_column(BigInteger, nullable=True, unique=True)
     # Telegram username while adding new admins in order to find and contact admins quickly
     username: Mapped[str] = mapped_column(String(100), nullable=True)
-    name: Mapped[str] = mapped_column(String(30), nullable=False)
-    surname: Mapped[str] = mapped_column(String(30), nullable=True)
+    name: Mapped[str] = mapped_column(String(64), nullable=False)
+    surname: Mapped[str] = mapped_column(String(64), nullable=True)
     # Password is for admins to be able to manage their jobs through web APIs also
     password: Mapped[str] = mapped_column(String(64), nullable=True)
     role_id: Mapped[int] = mapped_column(Integer, ForeignKey("role.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
@@ -45,9 +45,9 @@ class Chat(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     # If users send 'hi' messages, bot responds with default messages without getting response from OpenAI. Thus thread_id nullable.
-    asst_thread_id: Mapped[str] = mapped_column(String(64), nullable=True)
+    asst_thread_id: Mapped[str] = mapped_column(String(255), nullable=True)
     chat_type: Mapped[str] = mapped_column(String(15), nullable=False)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
 
     user: Mapped["User"] = relationship("User", backref="chat")
 
@@ -60,8 +60,8 @@ class Message(Base):
     sender: Mapped[str] = mapped_column(String(15), nullable=False)
     bot_message_id: Mapped[str] = mapped_column(String(64), nullable=True)
     # unique=True ensures one-to-one relationship
-    reply_to_message_id: Mapped[int] = mapped_column(Integer, ForeignKey("message.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=True, unique=True)
-    chat_id: Mapped[int] = mapped_column(Integer, ForeignKey("chat.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    reply_to_message_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("message.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=True, unique=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("chat.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
 
     chat: Mapped["Chat"] = relationship("Chat", backref="message")
 
@@ -81,7 +81,7 @@ class Reaction(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     satisfied: Mapped[bool] = mapped_column(Boolean, nullable=True)
     feedback: Mapped[str] = mapped_column(Text, nullable=True)
-    message_id: Mapped[int] = mapped_column(Integer, ForeignKey("message.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    message_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("message.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
 
     # One-to-one relationship from Reaction to Message
     message: Mapped["Message"] = relationship("Message", backref="reaction", uselist=False)
@@ -91,15 +91,15 @@ class File(Base):
     __tablename__ = "file"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    asst_file_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    tg_file_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    asst_file_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    tg_file_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     extension: Mapped[str] = mapped_column(String(10), nullable=False)
-    content_type: Mapped[str] = mapped_column(String(50), nullable=False)
-    size: Mapped[int] = mapped_column(Numeric(5, 2), nullable=False)
-    path: Mapped[str] = mapped_column(String(255), nullable=False)
-    uploaded_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
-    deleted_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
+    content_type: Mapped[str] = mapped_column(String(255), nullable=False)
+    size: Mapped[int] = mapped_column(Numeric(), nullable=False)
+    path: Mapped[str] = mapped_column(String(275), nullable=False)
+    uploaded_by: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    deleted_by: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
 
     uploader: Mapped["User"] = relationship("User", foreign_keys=[uploaded_by])
     deleter: Mapped["User"] = relationship("User", foreign_keys=[deleted_by])

@@ -5,7 +5,7 @@ from configs.config import DEVELOPERS_TELEGRAM_ID, DEVELOPERS_TELEGRAM_USERNAME
 from database.cruds.chat_crud import get_chat_by_user_tg_id, create_chat
 from database.models import User, Chat
 from database.cruds.role_crud import get_role_by_name
-from database.cruds.user_crud import get_super_admins, add_user, get_user_by_tg_id
+from database.cruds.user_crud import get_super_admins, add_user, get_user_by_tg_id, get_user_by_username, update_user
 from dtos.user_dto import get_user_from_message
 from enums.telegram_eunms import RoleType, ChatType
 
@@ -47,6 +47,28 @@ async def save_user_and_create_chat(session: AsyncSession, message: Message) -> 
             # return
 
         user = get_user_from_message(message, role)
+
+        if user.username is not None:
+            user_with_username = await get_user_by_username(session=session, username=user.username)
+
+            # Check if the newly requesting user's username is not possessed by someone else in DB. If user with that
+            # username is not None, then super admin must have provided that username incorrectly while adding new
+            # admin. Thus, setting the username to its real owner by removing it from admin is the correct way here.
+            if user_with_username is not None:
+                print(f'Removing username "{user_with_username.username}" from user with id={user_with_username.id} '
+                      f'to avoid unique constraint violation while saving new user, who is the real owner of the username')
+                await update_user(
+                    session=session,
+                    user_id=user_with_username.id,
+                    data={
+                        'username': None,
+                        'name': user_with_username.name,
+                        'surname': user_with_username.surname,
+                        'role_id': user_with_username.role_id
+                    },
+                    check_role=False
+                )
+
         user = await add_user(session=session, user=user)
         if user is None:
             print('User is empty after add_user function call, and thus, raising exception')

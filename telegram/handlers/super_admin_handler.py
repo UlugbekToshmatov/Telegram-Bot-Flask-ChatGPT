@@ -139,27 +139,30 @@ async def super_admin_update_admin_role_handler(callback: CallbackQuery, session
     await state.set_state(AdminFSM.username)
 
     temp_message = await callback.message.answer(
-        text='Updating admin...',
+        text='Foydalanuvchi ma\'lumotlarini o\'zgartirishda\n'
+             'keyingi qadamga o\'tish uchun ">" belgisini,\n'
+             'oldingi qadamga o\'tish uchun "<" belgisini,\n'
+             'amaliyotni bekor qilish uchun "cancel" so\'zini\n'
+             'kiritishinggiz mumkin',
         reply_markup=ReplyKeyboardRemove()
     )
-    await bot.delete_message(chat_id=temp_message.chat.id, message_id=temp_message.message_id)
-    await callback.message.answer(
-        text='Foydalanuvchining yangi telegram username\'ini kiriting:',
-        # reply_markup=get_callback_buttons(    todo: inform super and superior admins about their hidden capabilities
-        #     buttons={
-        #         # 'Keyingisi': 'next',
-        #         'Bekor qilish': 'cancel'
-        #     },
-        #     sizes=(2, )
-        # )
-    )
+    # await bot.delete_message(chat_id=temp_message.chat.id, message_id=temp_message.message_id)
+    await callback.message.answer('Foydalanuvchining yangi telegram username\'ini kiriting:')
 
 
 '''Create admin start'''
 
 @super_admin_router.message(StateFilter(None), F.text == 'Admin qo\'shish')
 async def super_admin_add_admin_handler(message: Message, state: FSMContext) -> None:
-    await message.answer('Foydalanuvchi telegram ID\'sini kiriting:', reply_markup=ReplyKeyboardRemove())
+    await message.answer(
+        text='Yangi admin qo\'shishda\n'
+             'keyingi qadamga o\'tish uchun ">" belgisini,\n'
+             'oldingi qadamga o\'tish uchun "<" belgisini,\n'
+             'amaliyotni bekor qilish uchun "cancel" so\'zini\n'
+             'kiritishinggiz mumkin',
+        reply_markup=ReplyKeyboardRemove()
+    )
+    await message.answer('Foydalanuvchi telegram ID\'sini kiriting:')
     await state.set_state(AdminFSM.tg_id)
 
 

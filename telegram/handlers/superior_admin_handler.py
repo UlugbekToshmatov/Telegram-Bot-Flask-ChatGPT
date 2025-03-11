@@ -152,8 +152,14 @@ async def superior_admin_delete_file_handler(callback: CallbackQuery, session: A
 
 @superior_admin_router.message(StateFilter(None), F.text == 'Fayl yuklash')
 async def superior_admin_upload_file_handler(message: Message, state: FSMContext):
+    await message.answer(
+        text='Yangi faylni serverga yuklashda\n'
+             'amaliyotni bekor qilish uchun "cancel" so\'zini\n'
+             'kiritishinggiz mumkin',
+        reply_markup=ReplyKeyboardRemove()
+    )
     await state.set_state(FileFSM.file_upload)
-    await message.answer('Faylni yuklang:', reply_markup=ReplyKeyboardRemove())
+    await message.answer('Faylni yuklang:')
 
 
 @superior_admin_router.message(StateFilter(FileFSM.file_upload), F.content_type == 'document')

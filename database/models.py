@@ -58,7 +58,8 @@ class Message(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     sender: Mapped[str] = mapped_column(String(15), nullable=False)
-    bot_message_id: Mapped[str] = mapped_column(String(64), nullable=True)
+    bot_message_id: Mapped[str] = mapped_column(String(255), nullable=True)
+    tg_message_id: Mapped[int] = mapped_column(BigInteger, nullable=True)
     # unique=True ensures one-to-one relationship
     reply_to_message_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("message.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=True, unique=True)
     chat_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("chat.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=False)

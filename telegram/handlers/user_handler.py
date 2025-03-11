@@ -8,13 +8,16 @@ from aiogram.types import ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.cruds.chat_crud import update_chat
-from database.cruds.message_crud import save_message
+from database.cruds.message_crud import save_message, save_tg_message_id, get_message_by_id
 from database.cruds.reaction_crud import save_dissatisfaction, save_dissatisfaction_feedback
-from database.cruds.role_crud import get_role_by_user_id
+from database.cruds.role_crud import get_role_by_user_id, get_role_by_user_tg_id
 from database.models import Message, Chat, User
 from database.utils.user_utils import save_user_and_create_chat
 from enums.telegram_eunms import SenderType, RoleType
 from gpt.ai_assistant import create_thread, send_message
+from telegram.handlers.admin_handler import ADMIN_KEYBOARD
+from telegram.handlers.super_admin_handler import SUPER_ADMIN_KEYBOARD
+from telegram.handlers.superior_admin_handler import SUPERIOR_ADMIN_KEYBOARD
 from telegram.keyboards.inline_keyboards import get_callback_buttons
 from telegram.uitls.handler_utils import clean_response, greetings, leave_takings, commands
 
@@ -54,6 +57,7 @@ async def user_satisfaction_handler(callback: types.CallbackQuery, bot: Bot):
     await callback.message.answer(
         text='Ushbu javobim sizni qanoatlantirganidan xursandman.\n'
              'Agar sizda qo‘shimcha savollar bo‘lsa, marhamat, so‘rashingiz mumkin.',
+        reply_to_message_id=callback.message.message_id,
         reply_markup=ReplyKeyboardRemove()
     )
 
@@ -72,6 +76,7 @@ async def user_dissatisfaction_handler(callback: types.CallbackQuery, bot: Bot, 
     await callback.message.answer(
         text='Ushbu javobim sizni qanoatlantirmaganidan afsusdaman.\n'
              'Agar bu borada sizda biror fikr bor bo‘lsa, iltimos fikringgizni bildiring.',
+        reply_to_message_id=callback.message.message_id,
         reply_markup=get_callback_buttons(buttons={
             'Fikr bildirish': f'feedback_{message_id}',
             'Davom etish': 'continue',
@@ -91,18 +96,25 @@ async def user_continue_handler(callback: types.CallbackQuery, bot: Bot):
 
 
 @user_router.callback_query(StateFilter(None), F.data.startswith('feedback_'))
-async def user_feedback_option_handler(callback: types.CallbackQuery, bot: Bot, state: FSMContext):
+async def user_feedback_option_handler(callback: types.CallbackQuery, session: AsyncSession, bot: Bot, state: FSMContext):
     message_id = int(callback.data.split('_')[-1])
 
     await state.set_state(UserDissatisfactionFSM.provide_feedback)
     UserDissatisfactionFSM.message_id = message_id
+
+    assistant_response = await get_message_by_id(session=session, message_id=message_id)
+    user_prompt = await get_message_by_id(session=session, message_id=assistant_response.reply_to_message_id)
 
     await bot.edit_message_reply_markup(
         chat_id=callback.message.chat.id,
         message_id=callback.message.message_id,
         reply_markup=None  # This removes the inline keyboard
     )
-    await callback.message.answer('Iltimos, fikringgizni bildiring:')
+    await callback.message.answer(
+        text='Iltimos, bu so\'rovinggiz bo\'yicha fikringgizni bildiring:',
+        reply_to_message_id=user_prompt.tg_message_id,
+        reply_markup=ReplyKeyboardRemove()
+    )
 
 
 @user_router.message(StateFilter(UserDissatisfactionFSM.provide_feedback), F.text)
@@ -112,9 +124,29 @@ async def user_feedback_handler(message: types.Message, session: AsyncSession, s
     feedback = message.text
     # save feedback for the reaction
     await save_dissatisfaction_feedback(session=session, message_id=assistant_message_id, feedback=feedback)
-    await message.answer('Fikringgiz uchun rahmat. Agar sizda qo‘shimcha savollar bo‘lsa, yana so‘rashinggiz mumkin.')
+
+    current_user_role = await get_role_by_user_tg_id(session=session, user_tg_id=message.from_user.id)
+
+    if current_user_role.role_name == RoleType.SUPER_ADMIN.name:
+        await message.answer(
+            text='Fikringgiz uchun rahmat. Agar sizda qo‘shimcha savollar bo‘lsa, yana so‘rashinggiz mumkin.',
+            reply_markup=SUPER_ADMIN_KEYBOARD
+        )
+    elif current_user_role.role_name == RoleType.SUPERIOR_ADMIN.name:
+        await message.answer(
+            text='Fikringgiz uchun rahmat. Agar sizda qo‘shimcha savollar bo‘lsa, yana so‘rashinggiz mumkin.',
+            reply_markup=SUPERIOR_ADMIN_KEYBOARD
+        )
+    elif current_user_role.role_name == RoleType.ADMIN.name:
+        await message.answer(
+            text='Fikringgiz uchun rahmat. Agar sizda qo‘shimcha savollar bo‘lsa, yana so‘rashinggiz mumkin.',
+            reply_markup=ADMIN_KEYBOARD
+        )
+    else:
+        await message.answer('Fikringgiz uchun rahmat. Agar sizda qo‘shimcha savollar bo‘lsa, yana so‘rashinggiz mumkin.')
+
     await state.clear()
-    UserDissatisfactionFSM.message = None
+    UserDissatisfactionFSM.message_id = None
 
 
 @user_router.message(UserDissatisfactionFSM.provide_feedback)
@@ -138,7 +170,7 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
         chat: Chat = result['chat']
         user: User = result['user']
         user_role = await get_role_by_user_id(session=session, user_id=user.id)
-        user_message = await save_message(session=session, message=Message(text=text, sender=SenderType.USER.name, bot_message_id=str(message.message_id), chat_id=chat.id))
+        user_message = await save_message(session=session, message=Message(text=text, sender=SenderType.USER.name, tg_message_id=message.message_id, chat_id=chat.id))
     except Exception as e:
         print(e)
         if user_role is not None:
@@ -233,14 +265,17 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
 
     await asyncio.sleep(1)
     await bot.delete_message(chat_id=chat_id, message_id=temp_message.message_id)
-    await message.answer(
+    tg_bot_response = await message.answer(
         text=assistant_response,
+        reply_to_message_id=message.message_id,
         reply_markup=get_callback_buttons(buttons={
             'Qoniqarli': f'satisfied',
             'Qoniqarsiz': f'dissatisfied_{assistant_message.id}',
         },
             sizes=(2,))
     )
+
+    await save_tg_message_id(session=session, message_id=assistant_message.id, tg_message_id=tg_bot_response.message_id)
 
     # await bot.edit_message_text(text='Iltimos, kutib turing..', chat_id=chat_id, message_id=temp_message.message_id)
     # await asyncio.sleep(1)

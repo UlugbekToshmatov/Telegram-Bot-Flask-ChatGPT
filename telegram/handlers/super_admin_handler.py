@@ -75,44 +75,6 @@ async def super_admin_view_admins_handler(message: Message, session: AsyncSessio
     await message.answer(text='***Barcha adminlar ro\'yxati***')
 
 
-'''Updating admin role start'''
-
-@super_admin_router.callback_query(StateFilter(None), F.data.startswith('update_admin_'))
-async def super_admin_update_admin_role_handler(callback: CallbackQuery, session: AsyncSession, state: FSMContext, bot: Bot) -> None:
-    admin_tg_id = int(callback.data.split('_')[-1])
-
-    if admin_tg_id == callback.from_user.id:
-        await callback.message.answer(text='Kechirasiz, siz o\'zinggizning rolinggizni o\'zgartirish huquqiga ega emassiz!')
-        return
-
-    admin_user = await get_user_by_tg_id(session=session, tg_id=admin_tg_id)
-    if admin_user is None:
-        await callback.message.answer(text='Kechirasiz, bunday foydalanuvchi topilmadi!')
-        return
-
-    AdminFSM.admin_to_be_updated = admin_user
-    await state.set_state(AdminFSM.username)
-
-    temp_message = await callback.message.answer(
-        text='Updating admin...',
-        reply_markup=ReplyKeyboardRemove()
-    )
-    print(f'temp message: {temp_message}')
-    await bot.delete_message(chat_id=temp_message.chat.id, message_id=temp_message.message_id)
-    await callback.message.answer(
-        text='Foydalanuvchining yangi telegram username\'ini kiriting:',
-        # reply_markup=get_callback_buttons(    todo: inform super and superior admins about their hidden capabilities
-        #     buttons={
-        #         # 'Keyingisi': 'next',
-        #         'Bekor qilish': 'cancel'
-        #     },
-        #     sizes=(2, )
-        # )
-    )
-
-'''Updating admin role end'''
-
-
 # @super_admin_router.callback_query(StateFilter('*'), F.data == 'cancel')
 # async def super_admin_cancel_handler(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
 #     await bot.edit_message_reply_markup(
@@ -158,8 +120,42 @@ async def super_admin_cancel_operation_handler(message: Message, state: FSMConte
 #     elif AdminFSM.admin_to_be_updated is not None:
 
 
+'''Update admin start'''
 
-'''Adding admin start'''
+@super_admin_router.callback_query(StateFilter(None), F.data.startswith('update_admin_'))
+async def super_admin_update_admin_role_handler(callback: CallbackQuery, session: AsyncSession, state: FSMContext, bot: Bot) -> None:
+    admin_tg_id = int(callback.data.split('_')[-1])
+
+    if admin_tg_id == callback.from_user.id:
+        await callback.message.answer(text='Kechirasiz, siz o\'zinggizning rolinggizni o\'zgartirish huquqiga ega emassiz!')
+        return
+
+    admin_user = await get_user_by_tg_id(session=session, tg_id=admin_tg_id)
+    if admin_user is None:
+        await callback.message.answer(text='Kechirasiz, bunday foydalanuvchi topilmadi!')
+        return
+
+    AdminFSM.admin_to_be_updated = admin_user
+    await state.set_state(AdminFSM.username)
+
+    temp_message = await callback.message.answer(
+        text='Updating admin...',
+        reply_markup=ReplyKeyboardRemove()
+    )
+    await bot.delete_message(chat_id=temp_message.chat.id, message_id=temp_message.message_id)
+    await callback.message.answer(
+        text='Foydalanuvchining yangi telegram username\'ini kiriting:',
+        # reply_markup=get_callback_buttons(    todo: inform super and superior admins about their hidden capabilities
+        #     buttons={
+        #         # 'Keyingisi': 'next',
+        #         'Bekor qilish': 'cancel'
+        #     },
+        #     sizes=(2, )
+        # )
+    )
+
+
+'''Create admin start'''
 
 @super_admin_router.message(StateFilter(None), F.text == 'Admin qo\'shish')
 async def super_admin_add_admin_handler(message: Message, state: FSMContext) -> None:
@@ -195,6 +191,11 @@ async def super_admin_add_admin_tg_id_handler(message: Message, session: AsyncSe
     await state.update_data({'tg_id': tg_id})
     await state.set_state(AdminFSM.username)
     await message.answer('Foydalanuvchi telegram username\'ini kiriting:')
+
+
+@super_admin_router.message(AdminFSM.tg_id)
+async def super_admin_add_incorrect_admin_tg_id_handler(message: Message):
+    await message.answer('Siz noto\'g\'ri ma\'lumot kiritdinggiz.\nIltimos, foydalanuvchi telegram ID\'sini to\'g\'ri kiriting:')
 
 
 @super_admin_router.message(AdminFSM.username, F.text)
@@ -242,6 +243,11 @@ async def super_admin_add_admin_username_handler(message: Message, session: Asyn
         await message.answer('Foydalanuvchi ismini kiriting:')
 
 
+@super_admin_router.message(AdminFSM.username)
+async def super_admin_add_incorrect_admin_username_handler(message: Message):
+    await message.answer('Siz noto\'g\'ri ma\'lumot kiritdinggiz.\nIltimos, foydalanuvchi telegram username\'ini to\'g\'ri kiriting:')
+
+
 @super_admin_router.message(AdminFSM.name, F.text)
 async def super_admin_add_admin_name_handler(message: Message, state: FSMContext) -> None:
     name = message.text
@@ -272,6 +278,11 @@ async def super_admin_add_admin_name_handler(message: Message, state: FSMContext
         await message.answer('Foydalanuvchining yangi sharifini kiriting:')
     else:
         await message.answer('Foydalanuvchi sharifini kiriting:')
+
+
+@super_admin_router.message(AdminFSM.name)
+async def super_admin_add_incorrect_admin_name_handler(message: Message):
+    await message.answer('Siz noto\'g\'ri ma\'lumot kiritdinggiz.\nIltimos, foydalanuvchi ismini to\'g\'ri kiriting:')
 
 
 @super_admin_router.message(AdminFSM.surname, F.text)
@@ -317,6 +328,11 @@ async def super_admin_add_admin_surname_handler(message: Message, session: Async
                         buttons={'Tanlash': f'choose_role_{role.name}'}
                     )
                 )
+
+
+@super_admin_router.message(AdminFSM.surname)
+async def super_admin_add_incorrect_admin_surname_handler(message: Message):
+    await message.answer('Siz noto\'g\'ri ma\'lumot kiritdinggiz.\nIltimos, foydalanuvchi sharifini to\'g\'ri kiriting:')
 
 
 @super_admin_router.callback_query(AdminFSM.role_id, F.data.startswith('choose_role_'))
@@ -390,8 +406,15 @@ async def super_admin_next_or_prev_of_admin_role_handler(message: Message, state
             await message.answer(text='Siz avvalgi qadamdasiz. Foydalanuvchi sharifini kiriting:')
 
         await state.set_state(AdminFSM.surname)
+    else:
+        await message.answer('Siz noto\'g\'ri ma\'lumot kiritdinggiz.\nIltimos, foydalanuvchi uchun yuqoridagi rollardan birini tanlang.')
 
-'''Adding admin end'''
+
+@super_admin_router.message(AdminFSM.role_id)
+async def super_admin_add_incorrect_admin_role_handler(message: Message):
+    await message.answer('Siz noto\'g\'ri ma\'lumot kiritdinggiz.\nIltimos, foydalanuvchi uchun yuqoridagi rollardan birini tanlang.')
+
+'''Create/update admin end'''
 
 
 # @super_admin_router.message(F.text)

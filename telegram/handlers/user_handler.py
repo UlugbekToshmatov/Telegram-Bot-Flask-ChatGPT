@@ -16,7 +16,7 @@ from database.utils.user_utils import save_user_and_create_chat
 from enums.telegram_eunms import SenderType, RoleType
 from gpt.ai_assistant import create_thread, send_message
 from telegram.keyboards.inline_keyboards import get_callback_buttons
-from telegram.uitls.handler_utils import clean_response, greetings, leave_takings
+from telegram.uitls.handler_utils import clean_response, greetings, leave_takings, commands
 
 user_router = Router()
 
@@ -154,20 +154,8 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
 
     await bot.send_chat_action(chat_id, 'typing')
 
-    if len(text) < 5:
-        bot_response = 'Iltimos, savolinggizni to\'liqroq yozing!'
-        await save_message(
-            session=session,
-            message=Message(text=bot_response, sender=SenderType.BOT.name, reply_to_message_id=user_message.id, chat_id=chat.id)
-        )
-        if user_role.name != RoleType.USER.name:
-            await message.answer(bot_response)
-        else:
-            await message.answer(bot_response, reply_markup=ReplyKeyboardRemove())
-        return
-
-    for greeting in greetings:
-        if greeting.__contains__(text.lower()):
+    for command in greetings:
+        if command.__contains__(text.lower()):
             bot_response = 'Asslamu alaykum. Men Adliya Vazirligining yordamchi botiman. Sizga qanday yordam bera olishim mumkin?'
             await save_message(
                 session=session,
@@ -181,7 +169,6 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
 
     for leave_taking in leave_takings:
         if leave_taking.__contains__(text.lower()):
-            # answered = True
             bot_response = 'Xizmatimizdan foydalanganinggiz uchun rahmat. Xayr, salomat bo\'ling.'
             await save_message(
                 session=session,
@@ -192,6 +179,31 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
             else:
                 await message.answer(bot_response, reply_markup=ReplyKeyboardRemove())
             return
+
+    for command in commands:
+        if text.lower().__contains__(command):
+            bot_response = 'Kechirasiz, siz ushbu buyruqdan foydalana olmaysiz!'
+            await save_message(
+                session=session,
+                message=Message(text=bot_response, sender=SenderType.BOT.name, reply_to_message_id=user_message.id, chat_id=chat.id)
+            )
+            if user_role.name != RoleType.USER.name:
+                await message.answer(bot_response)
+            else:
+                await message.answer(bot_response, reply_markup=ReplyKeyboardRemove())
+            return
+
+    if len(text) < 5:
+        bot_response = 'Iltimos, savolinggizni to\'liqroq yozing!'
+        await save_message(
+            session=session,
+            message=Message(text=bot_response, sender=SenderType.BOT.name, reply_to_message_id=user_message.id, chat_id=chat.id)
+        )
+        if user_role.name != RoleType.USER.name:
+            await message.answer(bot_response)
+        else:
+            await message.answer(bot_response, reply_markup=ReplyKeyboardRemove())
+        return
 
     if chat.asst_thread_id is None:
         asst_thread_id = await create_thread()

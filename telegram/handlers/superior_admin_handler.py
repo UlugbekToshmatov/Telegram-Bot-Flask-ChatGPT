@@ -152,8 +152,6 @@ async def superior_admin_delete_file_handler(callback: CallbackQuery, session: A
 
 @superior_admin_router.message(StateFilter(None), F.text == 'Fayl yuklash')
 async def superior_admin_upload_file_handler(message: Message, state: FSMContext):
-    # document = await message.document
-    # print(document)
     await state.set_state(FileFSM.file_upload)
     await message.answer('Faylni yuklang:', reply_markup=ReplyKeyboardRemove())
 
@@ -261,4 +259,4 @@ async def superior_admin_upload_file_content_handler(message: Message, session: 
 
 @superior_admin_router.message(StateFilter(FileFSM.file_upload))
 async def superior_admin_upload_incorrect_file_content_handler(message: Message):
-    await message.answer(text='Iltimos, faylni to\'g\'ri yuklang:')
+    await message.answer(text='Siz noto\'g\'ri ma\'lumot kiritdinggiz.\nIltimos, faylni to\'g\'ri yuklang:')

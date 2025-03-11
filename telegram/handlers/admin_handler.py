@@ -113,6 +113,7 @@ async def admin_view_questions_handler(callback: CallbackQuery, session: AsyncSe
         if not os.path.exists(DOWNLOAD_DIR):
             os.makedirs(DOWNLOAD_DIR)
 
+        # Prepare report name
         if role == RoleType.USER.name:
             report_name = f'users_last_{number_of_days}_days_{secure_date_time(str(datetime.now()))}.txt'
         else:
@@ -127,7 +128,7 @@ async def admin_view_questions_handler(callback: CallbackQuery, session: AsyncSe
         # Open the file in binary mode and create an InputFile
         with open(report_dir, 'rb') as file:
             file_content = file.read()
-            input_file = BufferedInputFile(file=file_content, filename=report_name)  # Pass the file object here
+            input_file = BufferedInputFile(file=file_content, filename=report_name)  # Pass the file content here
 
             # Send the document to Telegram
             await bot.send_document(chat_id=callback.message.chat.id, document=input_file)

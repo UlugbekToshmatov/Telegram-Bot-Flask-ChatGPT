@@ -48,18 +48,42 @@ async def user_start_handler(message: types.Message, session: AsyncSession, bot:
 
 
 @user_router.callback_query(F.data == 'satisfied')
-async def user_satisfaction_handler(callback: types.CallbackQuery, bot: Bot):
+async def user_satisfaction_handler(callback: types.CallbackQuery, session: AsyncSession, bot: Bot):
     await bot.edit_message_reply_markup(
         chat_id=callback.message.chat.id,
         message_id=callback.message.message_id,
         reply_markup=None  # This removes the inline keyboard
     )
-    await callback.message.answer(
-        text='Ushbu javobim sizni qanoatlantirganidan xursandman.\n'
-             'Agar sizda qo‘shimcha savollar bo‘lsa, marhamat, so‘rashingiz mumkin.',
-        reply_to_message_id=callback.message.message_id,
-        reply_markup=ReplyKeyboardRemove()
-    )
+
+    current_user_role = await get_role_by_user_tg_id(session=session, user_tg_id=callback.from_user.id)
+
+    if current_user_role.role_name == RoleType.SUPER_ADMIN.name:
+        await callback.message.answer(
+            text='Ushbu javobim sizni qanoatlantirganidan xursandman.\n'
+                 'Agar sizda qo‘shimcha savollar bo‘lsa, marhamat, so‘rashingiz mumkin.',
+            reply_to_message_id=callback.message.message_id,
+            reply_markup=SUPER_ADMIN_KEYBOARD
+        )
+    elif current_user_role.role_name == RoleType.SUPERIOR_ADMIN.name:
+        await callback.message.answer(
+            text='Ushbu javobim sizni qanoatlantirganidan xursandman.\n'
+                 'Agar sizda qo‘shimcha savollar bo‘lsa, marhamat, so‘rashingiz mumkin.',
+            reply_to_message_id=callback.message.message_id,
+            reply_markup=SUPERIOR_ADMIN_KEYBOARD
+        )
+    elif current_user_role.role_name == RoleType.ADMIN.name:
+        await callback.message.answer(
+            text='Ushbu javobim sizni qanoatlantirganidan xursandman.\n'
+                 'Agar sizda qo‘shimcha savollar bo‘lsa, marhamat, so‘rashingiz mumkin.',
+            reply_to_message_id=callback.message.message_id,
+            reply_markup=ADMIN_KEYBOARD
+        )
+    else:
+        await callback.message.answer(
+            text='Ushbu javobim sizni qanoatlantirganidan xursandman.\n'
+                 'Agar sizda qo‘shimcha savollar bo‘lsa, marhamat, so‘rashingiz mumkin.',
+            reply_to_message_id=callback.message.message_id
+        )
 
 
 @user_router.callback_query(F.data.startswith('dissatisfied_'))

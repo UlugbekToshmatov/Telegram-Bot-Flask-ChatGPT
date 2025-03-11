@@ -138,6 +138,8 @@ async def super_admin_cancel_operation_handler(message: Message, state: FSMConte
     if current_state is None:
         await message.answer(text='Bekor qilish uchun siz hali biror amaliyotni boshlamadinggiz.')
         return
+    elif current_state == 'FileFSM:file_upload':
+        await message.answer(text='Fayl yuklash bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)
     elif AdminFSM.admin_to_be_updated is not None:
         AdminFSM.admin_to_be_updated = None
         await message.answer(text='Adminni o\'zgartirish bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)

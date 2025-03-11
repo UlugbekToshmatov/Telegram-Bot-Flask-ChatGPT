@@ -37,8 +37,8 @@ async def view_conversations(session: AsyncSession, role: str, number_of_days: i
                 JOIN users u ON c.user_id = u.id
                 JOIN role ON u.role_id = role.id
                 WHERE role.name = 'USER'
-                    AND rctn.created_at >= CURRENT_DATE - INTERVAL '1 day' * :days 
-                    AND rctn.created_at < CURRENT_DATE
+                    AND rctn.created_at >= CURRENT_DATE - INTERVAL '1 day' * (:days - 1) 
+                    AND rctn.created_at < CURRENT_DATE + INTERVAL '1 day' 
                     AND u.deleted_at IS NULL
                     AND role.deleted_at IS NULL
         """)
@@ -52,8 +52,8 @@ async def view_conversations(session: AsyncSession, role: str, number_of_days: i
                 JOIN users u ON c.user_id = u.id
                 JOIN role ON u.role_id = role.id
                 WHERE role.name <> 'USER'
-                    AND rctn.created_at >= CURRENT_DATE - INTERVAL '1 day' * :days 
-                    AND rctn.created_at < CURRENT_DATE
+                    AND rctn.created_at >= CURRENT_DATE - INTERVAL '1 day' * (:days - 1) 
+                    AND rctn.created_at < CURRENT_DATE + INTERVAL '1 day' 
                     AND u.deleted_at IS NULL
                     AND role.deleted_at IS NULL
         """)

@@ -40,7 +40,8 @@ async def admin_view_conversations_handler(message: Message):
         reply_markup=get_inline_buttons(
             buttons={
                 'Adminlar uchun': 'ADMIN_MESSAGES',
-                'Foydalanuvchilar uchun': 'USER_MESSAGES'
+                'Foydalanuvchilar uchun': 'USER_MESSAGES',
+                'Yopish': 'CLOSE_MESSAGE_VIEW'
             },
             sizes=(1, 1)
         )
@@ -83,6 +84,14 @@ async def view_user_messages_callback_handler(callback: CallbackQuery):
     )
 
 
+@admin_router.callback_query(F.data == 'CLOSE_MESSAGE_VIEW')
+async def close_message_view_callback_handler(callback: CallbackQuery):
+    await callback.bot.delete_message(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.message_id
+    )
+
+
 @admin_router.callback_query(F.data == 'VIEW_MESSAGES_BACK')
 async def view_messages_back_callback_handler(callback: CallbackQuery):
     await callback.bot.edit_message_text(
@@ -92,7 +101,8 @@ async def view_messages_back_callback_handler(callback: CallbackQuery):
         reply_markup=get_inline_buttons(
             buttons={
                 'Adminlar uchun': 'ADMIN_MESSAGES',
-                'Foydalanuvchilar uchun': 'USER_MESSAGES'
+                'Foydalanuvchilar uchun': 'USER_MESSAGES',
+                'Yopish': 'CLOSE_MESSAGE_VIEW'
             },
             sizes=(1, 1)
         )

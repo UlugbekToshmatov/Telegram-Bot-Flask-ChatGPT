@@ -10,7 +10,7 @@ leave_takings = ['xayr', 'xayir', 'hayr', 'hayir', 'sog\' bo\'l', 'sog bo\'l', '
 commands = ['>', '<', 'cancel', 'adminlarni ko\'rish', 'admin qo\'shish', 'fayllarni ko\'rish', 'fayl yuklash',
             'savol-javoblarni ko\'rish', 'update_admin_', 'choose_role_', 'view_file_', 'delete_file_',
             'admin_messages', 'user_messages', 'view_messages_back', 'view_messages_for_', 'satisfied', 'dissatisfied_',
-            'feedback_', 'continue']
+            'feedback_', 'continue', 'close_message_view']
 
 ALLOWED_EXTENSIONS = {'pdf', 'txt', 'doc', 'docx', 'json'}
 

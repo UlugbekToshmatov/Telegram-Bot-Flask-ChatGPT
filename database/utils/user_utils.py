@@ -36,7 +36,7 @@ async def save_user_and_create_chat(session: AsyncSession, message: Message) -> 
 
     # Get user by tg id. If not exists, create one.
     user = await get_user_by_tg_id(session=session, tg_id=message.from_user.id)
-    print(f'User: {user}')
+    print(f'User: {user.__str__()}')
     if user is None:
         role = await get_role_by_name(session=session, name=RoleType.USER.name)
         print(f'Role: {role}')

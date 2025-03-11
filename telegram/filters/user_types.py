@@ -3,7 +3,7 @@ from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.cruds.role_crud import get_role_by_name, get_role_by_user_tg_id
-from database.cruds.user_crud import add_user
+from database.cruds.user_crud import add_user, get_user_by_username, update_user
 from database.models import User
 from dtos.user_dto import RoleWithUserId
 from enums.telegram_eunms import UserPrivileges, RoleType
@@ -94,14 +94,41 @@ class IsAdmin(Filter):
 async def add_new_user(message: Message, session: AsyncSession) -> None:
     user_role = await get_role_by_name(session=session, name=RoleType.USER.name)
     if user_role is None:
-        raise Exception('Role by name="user" not found')
+        print(f'Role by name="{RoleType.USER.name}" not found!')
+        raise Exception('Kechirasiz, tizimda noma\'lum xatolik yuz berdi!')
+
+    current_user_username = message.from_user.username
+    if current_user_username is not None:
+        print(f'current_user_username={current_user_username}')
+        current_user_username = f'@{current_user_username}'
+        user_with_username = await get_user_by_username(session=session, username=current_user_username)
+
+        # Check if the newly requesting user's username is not possessed by someone else in DB. If user with that
+        # username is not None, then super admin must have provided that username incorrectly while adding new
+        # admin. Thus, setting the username to its real owner by removing it from admin is the correct way here.
+        if user_with_username is not None:
+            print(f'Removing username "{user_with_username.username}" from user with id={user_with_username.id} '
+                  f'to avoid unique constraint violation while saving new user, who is the real owner of the username')
+            await update_user(
+                session=session,
+                user_id=user_with_username.id,
+                data={
+                    'username': None,
+                    'name': user_with_username.name,
+                    'surname': user_with_username.surname,
+                    'role_id': user_with_username.role_id
+                },
+                check_role=False
+            )
 
     await add_user(
         session=session,
         user=User(
             tg_id=message.from_user.id,
+            username=current_user_username if current_user_username is not None else None,
             name=message.from_user.first_name,
             surname=message.from_user.last_name,
+            password='adil456',
             role_id=user_role.id
         )
     )

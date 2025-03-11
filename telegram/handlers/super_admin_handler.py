@@ -357,7 +357,7 @@ async def super_admin_add_admin_role_handler(callback: CallbackQuery, session: A
 
     await state.update_data({'role_id': role.id})
     new_admin: dict[str, Any] = await state.get_data()
-    print(new_admin)
+    print(f'state data: {new_admin}')
 
     # get user by tg id, and first check if the user already exists
     # user: User = None
@@ -388,12 +388,19 @@ async def super_admin_add_admin_role_handler(callback: CallbackQuery, session: A
 
 # Handle next or prev operation when user is in the role_id state
 @super_admin_router.message(AdminFSM.role_id, F.text)
-async def super_admin_next_or_prev_of_admin_role_handler(message: Message, state: FSMContext) -> None:
+async def super_admin_next_or_prev_of_admin_role_handler(message: Message, session: AsyncSession, state: FSMContext) -> None:
     command = message.text
 
     if command == '>':
         if AdminFSM.admin_to_be_updated is not None:
             await state.update_data({'role_id': AdminFSM.admin_to_be_updated.role_id})
+
+            user = await get_user_by_tg_id(session=session, tg_id=AdminFSM.admin_to_be_updated.tg_id)
+            updated_admin_data: dict[str, Any] = await state.get_data()
+            print(f'state data: {updated_admin_data}')
+
+            await update_user(session=session, user_id=user.id, data=updated_admin_data, check_role=True)
+
             AdminFSM.admin_to_be_updated = None
             await state.clear()
             await message.answer(text='Foydalanuvchi ma\'lumotlari muvaffaqqiyatli o\'zgartirildi', reply_markup=SUPER_ADMIN_KEYBOARD)

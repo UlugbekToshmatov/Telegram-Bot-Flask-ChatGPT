@@ -119,7 +119,7 @@ async def get_super_admins(session: AsyncSession) -> list[UserWithRole]:
 
 async def update_user(session: AsyncSession, user_id: int, data: dict[str, Any], check_role: bool) -> None:
     if check_role:
-        role = get_role(session, data['role_id'])
+        role = await get_role(session, data['role_id'])
         if role is None:
             raise Exception(f'Role with id={data["role_id"]} not found')
 

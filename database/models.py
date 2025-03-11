@@ -26,7 +26,7 @@ class User(Base):
     # nullable because users may request from web API too
     tg_id: Mapped[int] = mapped_column(BigInteger, nullable=True, unique=True)
     # Telegram username while adding new admins in order to find and contact admins quickly
-    username: Mapped[str] = mapped_column(String(100), nullable=True)
+    username: Mapped[str] = mapped_column(String(100), nullable=True)   # todo: make username unique
     name: Mapped[str] = mapped_column(String(64), nullable=False)
     surname: Mapped[str] = mapped_column(String(64), nullable=True)
     # Password is for admins to be able to manage their jobs through web APIs also

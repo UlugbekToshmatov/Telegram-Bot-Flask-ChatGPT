@@ -6,7 +6,7 @@ from database.models import User, Role
 def get_user_from_message(message: Message, role: Role):
     return User(
         tg_id=message.from_user.id,
-        username=message.from_user.username,
+        username=f'@{message.from_user.username}' if message.from_user.username is not None else None,
         name=message.from_user.first_name,
         surname=message.from_user.last_name,
         password='adil456',

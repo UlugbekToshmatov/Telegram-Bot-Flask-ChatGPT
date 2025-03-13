@@ -3,6 +3,7 @@ from datetime import datetime
 
 from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, BufferedInputFile, CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +27,11 @@ ADMIN_KEYBOARD = get_keyboard(
 
 
 @admin_router.message(CommandStart())
-async def admin_start_handler(message: Message):
+async def admin_start_handler(message: Message, state: FSMContext):
+    state_data = await state.get_data()
+    if state_data is not None:
+        await state.clear()
+
     await message.answer(
         text='Amaliyot turini tanglang yoki assistent botga savolinggizni yozing:',
         reply_markup=ADMIN_KEYBOARD

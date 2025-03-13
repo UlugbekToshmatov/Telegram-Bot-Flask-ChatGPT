@@ -30,7 +30,7 @@ class UserDissatisfactionFSM(StatesGroup):
 
 
 @user_router.message(CommandStart())
-async def user_start_handler(message: types.Message, session: AsyncSession, bot: Bot):
+async def user_start_handler(message: types.Message, session: AsyncSession, state: FSMContext, bot: Bot):
     await bot.send_chat_action(message.chat.id, 'typing')
     print(f'User in user handler start: {message.from_user}')
 
@@ -40,6 +40,10 @@ async def user_start_handler(message: types.Message, session: AsyncSession, bot:
         print(e)
         await message.answer(text=e.args[0])
         return
+
+    state_data = await state.get_data()
+    if state_data is not None:
+        await state.clear()
 
     await message.answer(
         text='Asslamu alaykum. Men Adliya Vazirligining yordamchi botiman. Sizga qanday yordam bera olishim mumkin?',

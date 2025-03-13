@@ -42,7 +42,14 @@ class AdminFSM(StatesGroup):
 
 
 @super_admin_router.message(CommandStart())
-async def super_admin_start_handler(message: Message) -> None:
+async def super_admin_start_handler(message: Message, state: FSMContext) -> None:
+    state_data = await state.get_data()
+    if state_data is not None:
+        await state.clear()
+
+    if AdminFSM.admin_to_be_updated is not None:
+        AdminFSM.admin_to_be_updated = None
+
     await message.answer(
         text='Amaliyot turini tanglang yoki assistent botga savolinggizni yozing:',
         reply_markup=SUPER_ADMIN_KEYBOARD
@@ -98,7 +105,7 @@ async def super_admin_cancel_operation_handler(message: Message, state: FSMConte
     current_state = await state.get_state()
 
     if current_state is None:
-        await message.answer(text='Bekor qilish uchun siz hali biror amaliyotni boshlamadinggiz.')
+        await message.answer(text='Bekor qilish uchun siz hali biror amaliyotni boshlamadinggiz!')
         return
     elif current_state == 'FileFSM:file_upload':
         await message.answer(text='Fayl yuklash bekor qilindi', reply_markup=SUPER_ADMIN_KEYBOARD)

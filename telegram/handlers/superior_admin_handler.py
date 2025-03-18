@@ -15,7 +15,8 @@ from database.cruds.role_crud import get_role_by_user_tg_id
 from database.cruds.user_crud import get_user_by_tg_id
 from database.models import File
 from enums.telegram_eunms import RoleType
-from gpt.ai_assistant import upload_file_to_vector_store, delete_file_from_vector_store, upload_file_to_openai
+from gpt.ai_assistant import upload_file_to_vector_store, delete_file_from_vector_store, upload_file_to_openai, \
+    delete_file_from_openai
 from telegram.filters.user_types import IsSuperiorAdmin
 from telegram.handlers.super_admin_handler import SUPER_ADMIN_KEYBOARD
 from telegram.keyboards.inline_keyboards import get_inline_buttons
@@ -141,8 +142,11 @@ async def superior_admin_delete_file_handler(callback: CallbackQuery, session: A
                 params={'user_id': current_user.id, 'file_id': file_id, 'new_file_name': new_file_name, 'new_path': new_path}
             )
 
-            # Delete the file from the OpenAI's vector store
+            # Detach the file from the OpenAI's vector store
             delete_file_from_vector_store(file_id=file.asst_file_id)
+
+            # Delete the file from OpenAI itself
+            delete_file_from_openai(file_id=file.asst_file_id)
 
             await callback.bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
             await callback.message.answer('Fayl muvaffaqqiyatli o\'chirildi')

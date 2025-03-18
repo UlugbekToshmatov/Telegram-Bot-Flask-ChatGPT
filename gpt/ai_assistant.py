@@ -116,7 +116,16 @@ def delete_file_from_vector_store(file_id: str):
         )
         print(f"Delete response: {delete_response}")
     except Exception as e:
-        print(f"Error while deleting file: {e}")
+        print(f"Error while deleting file from vector store: {e}")
+        raise e
+
+
+def delete_file_from_openai(file_id: str):
+    try:
+        deletion_status = client.files.delete(file_id=file_id)
+        print(f"Deletion status: {deletion_status}")
+    except Exception as e:
+        print(f"Error while deleting file from OpenAI: {e}")
         raise e
 
 

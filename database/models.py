@@ -95,7 +95,7 @@ class File(Base):
     asst_file_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     tg_file_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    extension: Mapped[str] = mapped_column(String(10), nullable=False)
+    extension: Mapped[str] = mapped_column(String(50), nullable=False)
     content_type: Mapped[str] = mapped_column(String(255), nullable=False)
     size: Mapped[int] = mapped_column(Numeric(), nullable=False)
     path: Mapped[str] = mapped_column(String(275), nullable=False)

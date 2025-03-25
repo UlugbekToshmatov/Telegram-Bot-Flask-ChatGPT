@@ -139,7 +139,7 @@ async def user_feedback_option_handler(callback: types.CallbackQuery, session: A
         reply_markup=None  # This removes the inline keyboard
     )
     await callback.message.answer(
-        text='Iltimos, bu so\'rovinggiz bo\'yicha fikringgizni bildiring:',
+        text="Iltimos, bu so'rovinggiz bo'yicha fikringgizni bildiring:",
         reply_to_message_id=user_prompt.tg_message_id,
         reply_markup=ReplyKeyboardRemove()
     )

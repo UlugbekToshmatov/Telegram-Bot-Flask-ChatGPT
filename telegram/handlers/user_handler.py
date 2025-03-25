@@ -14,7 +14,7 @@ from database.cruds.role_crud import get_role_by_user_id, get_role_by_user_tg_id
 from database.models import Message, Chat, User
 from database.utils.user_utils import save_user_and_create_chat
 from enums.telegram_eunms import SenderType, RoleType
-from gpt.ai_assistant import create_thread, send_message
+from gpt.open_ai_assistant import create_thread, send_message
 from telegram.handlers.admin_handler import ADMIN_KEYBOARD
 from telegram.handlers.super_admin_handler import SUPER_ADMIN_KEYBOARD
 from telegram.handlers.superior_admin_handler import SUPERIOR_ADMIN_KEYBOARD

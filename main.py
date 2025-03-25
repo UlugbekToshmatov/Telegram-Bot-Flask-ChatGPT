@@ -2,7 +2,7 @@ import asyncio
 
 from aiogram import Bot, Dispatcher
 
-from configs.config import TELEGRAM_TOKEN
+from configs.config import TELEGRAM_TOKEN, DOC_UPLOAD_DIR, DOC_DOWNLOAD_DIR
 from database.engine import on_startup, on_shutdown, session_maker
 from database.middleware import DataBaseSession
 from telegram.handlers.admin_handler import admin_router
@@ -28,4 +28,11 @@ async def main():
 
 
 if __name__ == '__main__':
+    # Logging
+    # logging.config.fileConfig(Path.cwd().joinpath("logger.ini"))
+    # logger = logging.getLogger(__name__)
+    # logger.info("Started")
+    DOC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    DOC_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
     asyncio.run(main())

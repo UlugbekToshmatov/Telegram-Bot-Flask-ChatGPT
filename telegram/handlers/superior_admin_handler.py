@@ -14,7 +14,7 @@ from database.cruds.role_crud import get_role_by_user_tg_id
 from database.cruds.user_crud import get_user_by_tg_id
 from database.models import File
 from enums.telegram_eunms import RoleType
-from gpt.ai_assistant import upload_file_to_vector_store, delete_file_from_vector_store, upload_file_to_openai, \
+from gpt.open_ai_assistant import upload_file_to_vector_store, delete_file_from_vector_store, upload_file_to_openai, \
     delete_file_from_openai
 from telegram.filters.user_types import IsSuperiorAdmin
 from telegram.handlers.super_admin_handler import SUPER_ADMIN_KEYBOARD

@@ -54,7 +54,7 @@ NOW IT'S TIME TO ANSWER THE QUESTIONS STRICTLY BASED ON THE KNOWLEDGE BASE. IF I
 
 # create vector store
 def create_vector_store(name: str):
-    v_store = client.beta.vector_stores.create(name=name)
+    v_store = client.vector_stores.create(name=name)
     print(f"Vector Store ID: {v_store.id}\n")
     return v_store
 
@@ -65,7 +65,7 @@ def upload_files(vector_store_id: str, *file_paths):
     print(f"File Streams: {file_streams}\n")
 
     # attach the file(s) to the vector store
-    file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+    file_batch = client.vector_stores.file_batches.upload_and_poll(
         vector_store_id=vector_store_id,
         files=file_streams
     )
@@ -95,7 +95,7 @@ def upload_file_to_openai(filename: str):
 def upload_file_to_vector_store(file_id: str):
     try:
         # Attach the file to the vector store
-        file_batch = client.beta.vector_stores.files.create_and_poll(
+        file_batch = client.vector_stores.files.create_and_poll(
             vector_store_id=VECTOR_STORE_ID,
             file_id=file_id
         )
@@ -110,7 +110,7 @@ def upload_file_to_vector_store(file_id: str):
 def delete_file_from_vector_store(file_id: str):
     try:
         # Detach a file by the file_id from the vector store
-        delete_response = client.beta.vector_stores.files.delete(
+        delete_response = client.vector_stores.files.delete(
             vector_store_id=VECTOR_STORE_ID,
             file_id=file_id
         )

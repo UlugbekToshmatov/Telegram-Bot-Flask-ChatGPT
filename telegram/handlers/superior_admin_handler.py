@@ -284,6 +284,8 @@ async def superior_admin_upload_file_content_handler(message: Message, session: 
         document = message.document
         document_local_path = DOC_UPLOAD_DIR.joinpath(document.file_name)
 
+        print(f"File size: {document.file_size / 1024 / 1024} MB")
+
         if document.file_size > DOC_MAX_SIZE:
             await message.answer(
                 f"Fayl hajmi {DOC_MAX_SIZE / 1024 / 1024} MB dan katta. Iltimos, kichikroq fayl yuklang.")
@@ -344,4 +346,4 @@ async def superior_admin_upload_file_content_handler(message: Message, session: 
 
 @superior_admin_router.message(StateFilter(FileFSM.file_upload))
 async def superior_admin_upload_incorrect_file_content_handler(message: Message):
-    await message.answer(text='Siz noto\'g\'ri ma\'lumot kiritdinggiz.\nIltimos, faylni to\'g\'ri yuklang:')
+    await message.answer(text="Siz noto'g'ri ma'lumot kiritdinggiz.\nIltimos, faylni to'g'ri yuklang:")

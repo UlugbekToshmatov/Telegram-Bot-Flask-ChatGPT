@@ -14,12 +14,12 @@ from database.cruds.role_crud import get_role_by_user_id, get_role_by_user_tg_id
 from database.models import Message, Chat, User
 from database.utils.user_utils import save_user_and_create_chat
 from enums.telegram_eunms import SenderType, RoleType
-from gpt.open_ai_assistant import create_thread, send_message
+from gpt.open_ai_assistant import create_thread, send_message_to_open_ai
 from telegram.handlers.admin_handler import ADMIN_KEYBOARD
 from telegram.handlers.super_admin_handler import SUPER_ADMIN_KEYBOARD
 from telegram.handlers.superior_admin_handler import SUPERIOR_ADMIN_KEYBOARD
 from telegram.keyboards.inline_keyboards import get_callback_buttons
-from telegram.uitls.handler_utils import clean_response, greetings, leave_takings, commands
+from telegram.uitls.handler_utils import clean_response, greetings, leave_takings, commands, mask_and_extract_entities
 
 user_router = Router()
 
@@ -270,10 +270,21 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
         chat.asst_thread_id = asst_thread_id
         await update_chat(session=session, chat_id=chat.id, data={'asst_thread_id': asst_thread_id})
 
-    response = await send_message(text=text, thread_id=chat.asst_thread_id)
+    masked_question, real_values = mask_and_extract_entities(text)
+    print(f"Masked question: {masked_question}")
+    print(f"Real values: {real_values}")
+    response = await send_message_to_open_ai(text=masked_question, thread_id=chat.asst_thread_id)
     assistant_response = response['assistant_response']
     assistant_message_id = response['assistant_message_id']
     assistant_response = clean_response(assistant_response)
+
+    # Replace masked values with real ones
+    for entity, values in real_values.items():
+        if values:
+            assistant_response = assistant_response.replace(f"MASK_{entity}", values[0])
+
+    print(f"Assistant response after cleaning and replacing masked values: {assistant_response}")
+
     assistant_message = await save_message(
         session=session,
         message=Message(

@@ -13,6 +13,25 @@ commands = [">", "<", "cancel", "adminlarni ko'rish", "admin qo'shish", "fayllar
             "admin_messages", "user_messages", "view_messages_back", "view_messages_for_", "satisfied", "dissatisfied_",
             "feedback_", "continue", "close_message_view"]
 
+PATTERNS = {
+    'PASSPORT': r'[A-Za-z]{2}\s?\d{7}',
+    'PHONE': r'(?:\+?998[-\s]?|998[-\s]?)\d{2}[-\s]?\d{3}[-\s]?\d{2}[-\s]?\d{2}',
+    'CARD_NUMBER': r'\d{4}(?:\s?\d{4}){3}',
+}
+
+
+def mask_and_extract_entities(text: str) -> tuple[str, dict]:
+    # Mask sensitive information and extract real values
+    masked_text = text
+    extracted_values = {entity: [] for entity in PATTERNS}
+
+    for entity, pattern in PATTERNS.items():
+        matches = re.findall(pattern, masked_text)
+        extracted_values[entity].extend(matches)
+        masked_text = re.sub(pattern, f'MASK_{entity.upper()}', masked_text)
+
+    return masked_text, extracted_values
+
 
 def clean_response(assistant_response: str) -> str:
     """Clean AI response from special characters"""
@@ -20,11 +39,14 @@ def clean_response(assistant_response: str) -> str:
     pattern = r'【[^【】]*?】'
     return re.sub(pattern, '', assistant_response)
 
+
 def secure_filename(filename: str) -> str:
     return filename.replace(' ', '_')
 
+
 def secure_date_time(date_time: str) -> str:
     return date_time.replace(' ', '_').replace(':', '-').replace('.', '_')
+
 
 def is_supported_file_type(filename: str):
     ext = filename.rsplit('.', 1)[1] if "." in filename else ""

@@ -185,6 +185,7 @@ async def create_thread():
 
 async def send_message_to_open_ai(text: str, thread_id: str, run_id: str = 'no_run_for_first_ever_message'):
     try:
+        start = time.time()
         # Add message to thread
         client.beta.threads.messages.create(thread_id=thread_id, role="user", content=text)
 
@@ -200,9 +201,12 @@ async def send_message_to_open_ai(text: str, thread_id: str, run_id: str = 'no_r
         messages = list(client.beta.threads.messages.list(thread_id=thread_id, run_id=run.id))
         assistant_response = messages[0].content[0].text.value
 
+        end = time.time()
+
         print(f"User: {text}")
         print(f"Assistant: {assistant_response}")
         print(f"Messages: {messages}")
+        print(f"Time spent for OpenAI: {(end - start)} seconds")
 
         return {
             'assistant_response': assistant_response,

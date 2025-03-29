@@ -1,4 +1,4 @@
-import asyncio
+import time
 
 from aiogram import Router, types, F, Bot
 from aiogram.filters import CommandStart, StateFilter
@@ -172,7 +172,10 @@ async def user_feedback_handler(message: types.Message, session: AsyncSession, s
             reply_markup=ADMIN_KEYBOARD
         )
     else:
-        await message.answer('Fikringgiz uchun rahmat. Agar sizda qo‘shimcha savollar bo‘lsa, yana so‘rashinggiz mumkin.')
+        await message.answer(
+            'Fikringgiz uchun rahmat. Agar sizda qo‘shimcha savollar bo‘lsa, yana so‘rashinggiz mumkin.',
+            reply_markup=ReplyKeyboardRemove()
+        )
 
     await state.clear()
     UserDissatisfactionFSM.message_id = None
@@ -185,9 +188,23 @@ async def incorrect_user_feedback_handler(message: types.Message):
 
 user_role = None
 temp_message = None
+response = None
+
+class QuestionFSM(StatesGroup):
+    in_progress = State()
+
 
 @user_router.message(F.text)
-async def user_prompt_handler(message: types.Message, session: AsyncSession, bot: Bot):
+async def user_prompt_handler(message: types.Message, session: AsyncSession, bot: Bot, state: FSMContext):
+    question_state = await state.get_state()
+    if question_state == QuestionFSM.in_progress:
+        await message.answer(
+            text="Iltimos, bu so'rovinggizni endi yozing",
+            reply_to_message_id=message.message_id
+        )
+        return
+
+    start = time.time()
     global user_role
     print(f'user: {message.from_user}')
     chat_id = message.chat.id
@@ -212,8 +229,6 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
             print(f'User role by user id not found!')
             await message.answer(text='Kechirasiz, tizimda xatolik yuz berdi!')
             return
-
-    await bot.send_chat_action(chat_id, 'typing')
 
     is_cyrillic_text = contains_cyrillic(text)
     is_latin_text = contains_latin(text)
@@ -292,6 +307,15 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
             await message.answer(bot_response, reply_markup=ReplyKeyboardRemove())
         return
 
+    global temp_message
+    if user_role.name != RoleType.USER.name:
+        temp_message = await message.answer(text='Iltimos, kutib turing...')
+    else:
+        temp_message = await message.answer(text='Iltimos, kutib turing...', reply_markup=ReplyKeyboardRemove())
+
+    await bot.send_chat_action(chat_id, 'typing')
+    await state.set_state(QuestionFSM.in_progress)
+
     if chat.asst_thread_id is None:
         asst_thread_id = await create_thread()
         chat.asst_thread_id = asst_thread_id
@@ -300,7 +324,7 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
     masked_question, real_values = mask_and_extract_entities(text)
     print(f"Masked question: {masked_question}")
     print(f"Real values: {real_values}")
-    # response = None
+    global response
     if chat.asst_run_id is None:
         response = await send_message_to_open_ai(text=masked_question, thread_id=chat.asst_thread_id)
     else:
@@ -309,8 +333,9 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
     assistant_message_id = response['assistant_message_id']
     assistant_run_id = response['assistant_run_id']
 
-    # Save last run id to retrieve and cancel a potential 'in_progress' run
-    await update_chat_run_id(session=session, chat_id=chat.id, data={'asst_run_id': assistant_run_id})
+    # Save last run id to retrieve and cancel a potential 'in_progress' run if no error occurred in OpenAI
+    if assistant_run_id is not None:
+        await update_chat_run_id(session=session, chat_id=chat.id, data={'asst_run_id': assistant_run_id})
 
     assistant_response = clean_response(assistant_response)
 
@@ -335,14 +360,7 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
         )
     )
 
-    # global temp_message
-    # if user_role.name != RoleType.USER.name:
-    #     temp_message = await message.answer(text='Iltimos, kutib turing...')
-    # else:
-    #     temp_message = await message.answer(text='Iltimos, kutib turing...', reply_markup=ReplyKeyboardRemove())
-    #
-    # await asyncio.sleep(1)
-    # await bot.delete_message(chat_id=chat_id, message_id=temp_message.message_id)
+    await bot.delete_message(chat_id=chat_id, message_id=temp_message.message_id)
     tg_bot_response = await message.answer(
         text=assistant_response,
         reply_to_message_id=message.message_id,
@@ -352,8 +370,12 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
         },
             sizes=(2,))
     )
-
+    end = time.time()
     await save_tg_message_id(session=session, message_id=assistant_message.id, tg_message_id=tg_bot_response.message_id)
+    question_state = await state.get_state()
+    if question_state == QuestionFSM.in_progress:
+        await state.clear()
+    print(f"Time spent in total: {(end - start)} seconds")
 
     # await bot.edit_message_text(text='Iltimos, kutib turing..', chat_id=chat_id, message_id=temp_message.message_id)
     # await asyncio.sleep(1)
@@ -368,13 +390,4 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
     #         'Qoniqarsiz': f'dissatisfied_{assistant_message.id}',
     #     },
     #         sizes=(2,))
-    # )
-
-    # await message.answer(
-    #     assistant_response,
-    #     reply_markup=get_callback_buttons(buttons={
-    #         'Qoniqarli': f'satisfied',
-    #         'Qoniqarsiz': f'dissatisfied_{assistant_message.id}',
-    #     },
-    #     sizes=(2,))
     # )

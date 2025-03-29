@@ -68,3 +68,11 @@ async def update_chat(session: AsyncSession, chat_id: int, data: dict[str, str])
     )
     await session.execute(query)
     await session.commit()
+
+
+async def update_chat_run_id(session: AsyncSession, chat_id: int, data: dict[str, str]) -> None:
+    query = update(Chat).where(Chat.id == chat_id and Chat.deleted_at.is_null()).values(
+        asst_run_id=data['asst_run_id']
+    )
+    await session.execute(query)
+    await session.commit()

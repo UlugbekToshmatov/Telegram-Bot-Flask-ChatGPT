@@ -46,6 +46,8 @@ class Chat(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     # If users send 'hi' messages, bot responds with default messages without getting response from OpenAI. Thus thread_id nullable.
     asst_thread_id: Mapped[str] = mapped_column(String(255), nullable=True)
+    # Last run id to cancel last active run in case it is in 'in_progress' status, which causes errors when sending consecutive message to OpenAI
+    asst_run_id: Mapped[str] = mapped_column(String(255), nullable=True)
     chat_type: Mapped[str] = mapped_column(String(15), nullable=False)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
 

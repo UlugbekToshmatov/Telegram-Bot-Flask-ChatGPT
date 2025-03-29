@@ -1,3 +1,5 @@
+import time
+
 from openai import OpenAI
 
 from configs.config import OPEN_AI_API_KEY, ASSISTANT_ID, VECTOR_STORE_ID
@@ -181,10 +183,20 @@ async def create_thread():
     return new_thread.id
 
 
-async def send_message_to_open_ai(text: str, thread_id: str):
+async def send_message_to_open_ai(text: str, thread_id: str, run_id: str = 'no_run_for_first_ever_message'):
     try:
+        # Add message to thread
         client.beta.threads.messages.create(thread_id=thread_id, role="user", content=text)
-        run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=ASSISTANT_ID)
+
+        # Run the assistant with the above thread, which has user message in it
+        run = client.beta.threads.runs.create(thread_id=thread_id, assistant_id=ASSISTANT_ID)
+
+        # Wait for completion
+        while run.status != "completed":
+            # Be nice to the API
+            time.sleep(0.5)
+            run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+
         messages = list(client.beta.threads.messages.list(thread_id=thread_id, run_id=run.id))
         assistant_response = messages[0].content[0].text.value
 
@@ -192,12 +204,56 @@ async def send_message_to_open_ai(text: str, thread_id: str):
         print(f"Assistant: {assistant_response}")
         print(f"Messages: {messages}")
 
-        return {'assistant_response': assistant_response, 'assistant_message_id': messages[0].id}
+        return {
+            'assistant_response': assistant_response,
+            'assistant_message_id': messages[0].id,
+            'assistant_run_id': run.id
+        }
     except Exception as e:
         print(f'Error occurred while getting message from OpenAI: {e}')
+        if e.__str__().__contains__('already has an active run') or e.__str__().__contains__("Can't add messages to thread_"):
+            try:
+                last_run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
+
+                # Cancel the active run
+                print(f"Cancelling run: {run_id}")
+                while last_run.status != "cancelled":
+                    last_run = client.beta.threads.runs.cancel(
+                        thread_id=thread_id,
+                        run_id=run_id
+                    )
+                print(f"Cancelled run {last_run} successfully")
+
+                # Add message to thread
+                client.beta.threads.messages.create(thread_id=thread_id, role="user", content=text)
+
+                # Run the assistant with the above thread, which has user message in it
+                run = client.beta.threads.runs.create(thread_id=thread_id, assistant_id=ASSISTANT_ID)
+
+                # Wait for completion
+                while run.status != "completed":
+                    # Be nice to the API
+                    time.sleep(0.5)
+                    run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+
+                messages = list(client.beta.threads.messages.list(thread_id=thread_id, run_id=run.id))
+                assistant_response = messages[0].content[0].text.value
+
+                print(f"User: {text}")
+                print(f"Assistant: {assistant_response}")
+                print(f"Messages: {messages}")
+
+                return {
+                    'assistant_response': assistant_response,
+                    'assistant_message_id': messages[0].id,
+                    'assistant_run_id': run.id
+                }
+            except Exception as e:
+                print(f'Error occurred while cancelling run and re-sending prompt to OpenAI: {e}')
         return {
-            'assistant_response': 'Kechirasiz, texnik nosozlik yuz berdi! Iltimos, keyinroq urinib ko\'ring.',
-            'assistant_message_id': None
+            'assistant_response': "Kechirasiz, texnik nosozlik yuz berdi! Iltimos, keyinroq urinib ko'ring.",
+            'assistant_message_id': None,
+            'assistant_run_id': None
         }
 
 

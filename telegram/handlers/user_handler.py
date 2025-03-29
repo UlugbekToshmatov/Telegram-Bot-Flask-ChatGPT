@@ -7,7 +7,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.cruds.chat_crud import update_chat
+from database.cruds.chat_crud import update_chat, update_chat_run_id
 from database.cruds.message_crud import save_message, save_tg_message_id, get_message_by_id
 from database.cruds.reaction_crud import save_dissatisfaction, save_dissatisfaction_feedback
 from database.cruds.role_crud import get_role_by_user_id, get_role_by_user_tg_id
@@ -19,7 +19,8 @@ from telegram.handlers.admin_handler import ADMIN_KEYBOARD
 from telegram.handlers.super_admin_handler import SUPER_ADMIN_KEYBOARD
 from telegram.handlers.superior_admin_handler import SUPERIOR_ADMIN_KEYBOARD
 from telegram.keyboards.inline_keyboards import get_callback_buttons
-from telegram.uitls.handler_utils import clean_response, greetings, leave_takings, commands, mask_and_extract_entities
+from telegram.uitls.handler_utils import clean_response, greetings, leave_takings, commands, mask_and_extract_entities, \
+    contains_cyrillic, contains_latin, to_latin, to_cyrillic
 
 user_router = Router()
 
@@ -214,9 +215,29 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
 
     await bot.send_chat_action(chat_id, 'typing')
 
-    for command in greetings:
-        if command.__contains__(text.lower()):
-            bot_response = 'Asslamu alaykum. Men Adliya Vazirligining yordamchi botiman. Sizga qanday yordam bera olishim mumkin?'
+    is_cyrillic_text = contains_cyrillic(text)
+    is_latin_text = contains_latin(text)
+
+    if not is_cyrillic_text and not is_latin_text:
+        bot_response = 'Iltimos, savolinggizni tushunarliroq yozing'
+        await save_message(
+            session=session,
+            message=Message(text=bot_response, sender=SenderType.BOT.name, reply_to_message_id=user_message.id,
+                            chat_id=chat.id)
+        )
+        if user_role.name != RoleType.USER.name:
+            await message.answer(bot_response)
+        else:
+            await message.answer(bot_response, reply_markup=ReplyKeyboardRemove())
+        return
+    elif is_cyrillic_text:
+        text = to_latin(text)
+
+    for greeting in greetings:
+        if greeting.__contains__(text.replace('?', "").replace('!', "").replace('.', "").lower()):
+            bot_response = 'Assalomu alaykum. Men Adliya Vazirligining yordamchi botiman. Sizga qanday yordam bera olishim mumkin?'
+            if is_cyrillic_text:
+                bot_response = to_cyrillic(bot_response)
             await save_message(
                 session=session,
                 message=Message(text=bot_response, sender=SenderType.BOT.name, reply_to_message_id=user_message.id, chat_id=chat.id)
@@ -229,7 +250,9 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
 
     for leave_taking in leave_takings:
         if leave_taking.__contains__(text.lower()):
-            bot_response = 'Xizmatimizdan foydalanganinggiz uchun rahmat. Xayr, salomat bo\'ling.'
+            bot_response = "Xizmatimizdan foydalanganinggiz uchun rahmat. Xayr, salomat bo'ling."
+            if is_cyrillic_text:
+                bot_response = to_cyrillic(bot_response)
             await save_message(
                 session=session,
                 message=Message(text=bot_response, sender=SenderType.BOT.name, reply_to_message_id=user_message.id, chat_id=chat.id)
@@ -241,8 +264,10 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
             return
 
     for command in commands:
-        if text.lower().__contains__(command):
+        if text == command:
             bot_response = 'Kechirasiz, siz ushbu buyruqdan foydalana olmaysiz!'
+            if is_cyrillic_text:
+                bot_response = to_cyrillic(bot_response)
             await save_message(
                 session=session,
                 message=Message(text=bot_response, sender=SenderType.BOT.name, reply_to_message_id=user_message.id, chat_id=chat.id)
@@ -254,7 +279,9 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
             return
 
     if len(text) < 5:
-        bot_response = 'Iltimos, savolinggizni to\'liqroq yozing!'
+        bot_response = "Iltimos, savolinggizni to'liqroq yozing!"
+        if is_cyrillic_text:
+            bot_response = to_cyrillic(bot_response)
         await save_message(
             session=session,
             message=Message(text=bot_response, sender=SenderType.BOT.name, reply_to_message_id=user_message.id, chat_id=chat.id)
@@ -273,9 +300,18 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
     masked_question, real_values = mask_and_extract_entities(text)
     print(f"Masked question: {masked_question}")
     print(f"Real values: {real_values}")
-    response = await send_message_to_open_ai(text=masked_question, thread_id=chat.asst_thread_id)
+    # response = None
+    if chat.asst_run_id is None:
+        response = await send_message_to_open_ai(text=masked_question, thread_id=chat.asst_thread_id)
+    else:
+        response = await send_message_to_open_ai(text=masked_question, thread_id=chat.asst_thread_id, run_id=chat.asst_run_id)
     assistant_response = response['assistant_response']
     assistant_message_id = response['assistant_message_id']
+    assistant_run_id = response['assistant_run_id']
+
+    # Save last run id to retrieve and cancel a potential 'in_progress' run
+    await update_chat_run_id(session=session, chat_id=chat.id, data={'asst_run_id': assistant_run_id})
+
     assistant_response = clean_response(assistant_response)
 
     # Replace masked values with real ones
@@ -284,6 +320,9 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
             assistant_response = assistant_response.replace(f"MASK_{entity}", values[0])
 
     print(f"Assistant response after cleaning and replacing masked values: {assistant_response}")
+
+    if is_cyrillic_text:
+        assistant_response = to_cyrillic(assistant_response)
 
     assistant_message = await save_message(
         session=session,
@@ -296,14 +335,14 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
         )
     )
 
-    global temp_message
-    if user_role.name != RoleType.USER.name:
-        temp_message = await message.answer(text='Iltimos, kutib turing...')
-    else:
-        temp_message = await message.answer(text='Iltimos, kutib turing...', reply_markup=ReplyKeyboardRemove())
-
-    await asyncio.sleep(1)
-    await bot.delete_message(chat_id=chat_id, message_id=temp_message.message_id)
+    # global temp_message
+    # if user_role.name != RoleType.USER.name:
+    #     temp_message = await message.answer(text='Iltimos, kutib turing...')
+    # else:
+    #     temp_message = await message.answer(text='Iltimos, kutib turing...', reply_markup=ReplyKeyboardRemove())
+    #
+    # await asyncio.sleep(1)
+    # await bot.delete_message(chat_id=chat_id, message_id=temp_message.message_id)
     tg_bot_response = await message.answer(
         text=assistant_response,
         reply_to_message_id=message.message_id,

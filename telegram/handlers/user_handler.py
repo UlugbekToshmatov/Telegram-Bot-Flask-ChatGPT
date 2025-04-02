@@ -16,7 +16,8 @@ from database.cruds.role_crud import get_role_by_user_id, get_role_by_user_tg_id
 from database.models import Message, Chat, User
 from database.utils.user_utils import save_user_and_create_chat
 from enums.telegram_eunms import SenderType, RoleType
-from gpt.open_ai_assistant import create_thread, send_message_to_open_ai, send_async_message_to_open_ai
+from gpt.open_ai_assistant import create_thread, send_message_to_open_ai, send_async_message_to_open_ai, \
+    stream_response, stream_response_
 from telegram.handlers.admin_handler import ADMIN_KEYBOARD
 from telegram.handlers.super_admin_handler import SUPER_ADMIN_KEYBOARD
 from telegram.handlers.superior_admin_handler import SUPERIOR_ADMIN_KEYBOARD
@@ -644,3 +645,8 @@ async def user_prompt_handler(message: types.Message, session: AsyncSession, bot
 #     if question_state == QuestionFSM.in_progress:
 #         await state.clear()
 #     print(f"Time spent in total: {(end - start)} seconds")
+
+
+# @user_router.message(F.text)
+# async def user_prompt_handler(message: types.Message, session: AsyncSession, bot: Bot, state: FSMContext):
+#     await stream_response_(text=message.text, message=message, bot=bot)

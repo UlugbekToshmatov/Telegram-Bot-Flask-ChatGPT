@@ -2,8 +2,11 @@ import time
 
 import asyncio
 
+from aiogram import types, Bot
+from httpx import RemoteProtocolError
 from openai import OpenAI
 from openai import AsyncOpenAI
+from openai.types.responses import ResponseTextDeltaEvent, ResponseTextDoneEvent
 
 from configs.config import OPEN_AI_API_KEY, ASSISTANT_ID, VECTOR_STORE_ID
 
@@ -149,15 +152,43 @@ def delete_file_from_openai(file_id: str):
         raise e
 
 
-def stream_response(text: str, thread_id: str):
-    stream = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": text}],
-        stream=True,
-    )
-    for chunk in stream:
-        if chunk.choices[0].delta.content is not None:
-            print(chunk.choices[0].delta.content, end="")
+async def stream_response(text: str, message: types.Message, bot: Bot):
+    max_retries = 3
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            start = time.time()
+            print("===============================================")
+            stream = client.responses.create(
+                model="gpt-4o-mini",
+                input=text,
+                stream=True,
+            )
+            response = ''
+            i = 0
+            asst_response = await bot.send_message(chat_id=message.chat.id, text=text[0])
+            for event in stream:
+                if isinstance(event, ResponseTextDeltaEvent):
+                    response += event.delta
+                elif isinstance(event, ResponseTextDoneEvent):
+                    pass
+                print(event)
+                i = i + 1
+                if response != '' and response != text[0] and i%5 == 0:
+                    await bot.edit_message_text(chat_id=message.chat.id, message_id=asst_response.message_id, text=response)
+
+            print("===============================================")
+            end = time.time()
+            print(f"Time spent for stream response: {(end - start)} seconds")
+            print("Final Response:", response)
+            return response  # Success, return the response
+
+        except RemoteProtocolError as e:
+            print(f"Error: {e}. Retrying... (Attempt {attempt + 1}/{max_retries})")
+            attempt += 1
+            time.sleep(2)  # Wait before retrying (you can adjust the delay)
+
+    raise Exception("Max retries reached. Could not complete the request.")
 
 
 # create assistant
